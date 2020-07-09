@@ -1,0 +1,132 @@
+<!doctype html>
+
+<html lang="en">
+  <head>
+    <title>Pontus Modell</title>
+    <!--Bootstrap -->
+
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.0/css/bootstrap.min.css"
+    integrity="sha384-9aIt2nRpC12Uk9gS9baDl411NQApFmC26EwAOH8WgZl5MYYxFfc+NcPb1dKGj7Sk"
+    crossorigin="anonymous">
+    <!--Bootstrap -->
+
+    <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
+    <!-- Plotly-->
+
+    <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@1.0.0/dist/tf.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@2.8.0"></script>
+    <!-- Import tfjs-vis -->
+    <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs-vis@1.0.2/dist/tfjs-vis.umd.min.js"></script>
+    <script src="papaparse.min.js"></script>
+    <!-- Insert these scripts at the bottom of the HTML, but before you use any Firebase services -->
+    <!--<script src="https://www.gstatic.com/firebasejs/7.14.1/firebase-app.js"></script> -->
+    <script src="https://www.gstatic.com/firebasejs/7.15.3/firebase-app.js"></script>
+
+    <script src="https://www.gstatic.com/firebasejs/7.15.3/firebase-auth.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/7.15.3/firebase-firestore.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/7.15.3/firebase-database.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/7.15.3/firebase-storage.js"></script>
+
+
+    <!-- include only the Firebase features as you need -->
+        <!--<script defer src="/__/firebase/7.15.3/firebase-app.js"></script>
+
+        <script defer src="/__/firebase/7.15.3/firebase-auth.js"></script>
+        <script defer src="/__/firebase/7.15.3/firebase-database.js"></script>
+        <script defer src="/__/firebase/7.15.3/firebase-messaging.js"></script>
+        <script defer src="/__/firebase/7.15.3/firebase-storage.js"></script>
+
+        <script defer src="/__/firebase/init.js"></script> -->
+
+    <script src="index.js"></script>
+
+  </head>
+
+
+  <body>
+
+
+<div >
+  <div class="row">
+    <div class="col-4"></div>
+    <div class="col-4"align="center" style="margin-top:40px; margin-bottom:80px">
+      <input type="Button" id="all" value="All" class="btn btn-dark"/>
+      <input type="Button" id="onlyECG" value="EKG" class="btn btn-dark"/>
+      <input type="Button" id="onlyPPGIR" value="PPG-IR" class="btn btn-dark"/>
+      <input type="Button" id="onlyPPGRed" value="PPEG-Red" class="btn btn-dark"/>
+    </div>
+    <div class="col-4"></div>
+  </div>
+    <div class="row">
+      <div class="col-12"align="center">
+        <div id="EKG_div" style="width: 1600px; height: 250px;"><!-- Plotly chart will be drawn inside this DIV --></div>
+      </div>
+
+      </div>
+
+      <div class="row">
+        <div class="col-12"align="center"><div id="PPG_IR_div" style="width: 1600px; height: 250px;"><!-- Plotly chart will be drawn inside this DIV --></div></div>
+      </div>
+
+      <div class="row">
+        <div class="col-12"align="center"><div id="PPG_Red_div" style="width: 1600px; height: 250px;"><!-- Plotly chart will be drawn inside this DIV --></div></div>
+      </div>
+
+      <div class="row">
+        <div class="col-12"align="center"><div id="labels_div" style="width: 1600px; height: 250px;"><!-- Plotly chart will be drawn inside this DIV --></div></div>
+      </div>
+
+
+
+          <div class="row" style="margin-top:40px; display:none">
+            <div class="col-4"></div>
+            <div class="col-2"align="center">
+              <label for="start">Start</label>
+                <input type="text" class="form-control" id= "start" placeholder="0"/>
+            </div>
+            <div class="col-2"align="center">
+              <label for="end">End</label>
+                <input type="text" class="form-control" id= "end" placeholder="2000"/>
+            </div>
+
+            <div class="col-4"></div>
+          </div>
+          <div class="row"style="margin-top:40px; display:none">
+            <div class="col-5"></div>
+            <div class="col-2"align="center" style="margin-top:40px; margin-bottom:80px">
+              <label for="length">Data-Length</label>
+              <input type="text" class="form-control" id= "length" placeholder="2000" style=" margin-bottom:20px"/>
+              <input type="Button" id="load_graph" value="Visa" class="btn btn-dark"/>
+            </div>
+            <div class="col-5"></div>
+            </div>
+
+      <div class="row">
+        <div class="col-6"><img id="test" width="500" height="600"></img></div>
+        </div>
+
+      <div class="row">
+        <div class="col-3"></div>
+        <div class="col-6"align="center">
+        <ul class="list-group">
+        </ul>
+        </div>
+        <div class="col-3"></div>
+      </div>
+
+</div>
+
+
+
+    <!--Bootstrap -->
+    <script src="https://code.jquery.com/jquery-3.5.1.slim.min.js"
+    integrity="sha384-DfXdz2htPH0lsSSs5nCTpuj/zy4C+OGpamoFVy38MVBnE+IbbVYUew+OrCXaRkfj" crossorigin="anonymous"></script>
+    <script src="https://cdn.jsdelivr.net/npm/popper.js@1.16.0/dist/umd/popper.min.js"
+    integrity="sha384-Q6E9RHvbIyZFJoft+2mJbHaEWldlvI9IOYy5n3zV9zzTtmI3UksdQRVvoxMfooAo" crossorigin="anonymous"></script>
+    <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.0/js/bootstrap.min.js"
+    integrity="sha384-OgVRvuATP1z7JjHLkuOU7Xw704+h835Lr+6QL9UvYjZE3Ipu6Tp75j7Bh/kR0JKI" crossorigin="anonymous"></script>
+
+
+
+  </body>
+</html>

@@ -55,11 +55,11 @@ const firebaseApp = firebase;
 
       console.log(result);
 
-      result.items.forEach(function(imgRef){
+      await: result.items.forEach(function(imgRef){
 
 
 
-        //Here we are retrieving the unice url for the selected item
+        //Here we are retrieving the unique url for the selected item
         imgRef.getDownloadURL().then(function(url){
               urls.push(url);
 

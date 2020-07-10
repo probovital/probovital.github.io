@@ -18,6 +18,7 @@ var start = 0;
 var end = 2000;
 var list_index = 0;
 var urls = [];
+var listItems = [];
 
 //export default !firebase.apps.length ? firebase.initializeApp(config) : firebase.app();
 
@@ -36,7 +37,7 @@ var urls = [];
   //}
 //}
 
-
+console.log("Loading Firebase");
 const firebaseApp = firebase;
   // Get a reference to the storage service, which is used to create references in your storage bucket
   var storage = firebase.storage();
@@ -49,45 +50,28 @@ const firebaseApp = firebase;
 
   //var listRef = storageRef;
 
-
+console.log("Firebase Loaded");
   storageRef.listAll().then(function(result){
-
-
-      console.log(result);
 
       result.items.forEach(function(imgRef){
 
-
-
         //Here we are retrieving the unique url for the selected item
-        await: imgRef.getDownloadURL().then(function(url){
-              urls.push(url);
-
-                      var ul = document.querySelector("ul");
-                      var li = document.createElement("a");
-                      li.className = "list-group-item list-group-item-action";
-                      li.setAttribute("id", "list_field_" + list_index);
-                      li.setAttribute("value", list_index);
-                      li.setAttribute('href', "#");
-                      li.innerText = imgRef.name;
-
-
-
-
-                      ul.appendChild(li);
-                      document.getElementById('list_field_' + list_index).onclick = function(){
-                        console.log(urls[li.value]);
-                        url2 = "https://cors-anywhere.herokuapp.com/" + url;
-                        makeplot(url2);
-                      }
-                      list_index++;
-
+        imgRef.getDownloadURL().then(function(url){
+            listItems.push([imgRef.name, url]);
+            list_index++;
+            if(list_index == result.items.length){
+              listItems.sort();
+              createListItem(listItems);
+            }
         });
       })
+      //console.log("List items");
+      //console.log(listItems);
+
   }).catch(function(error){
       console.log(error);
   });
-  getFromStorage(storage, "");
+
   getFromStorage(storage, "1");
 
   document.getElementById('load_graph').onclick = async function(){
@@ -160,6 +144,7 @@ return firebase.database().ref('/users/' + userId).once('value').then(function(s
 }
 
 function getFromStorage(storage, reference){
+  console.log("Loading datasource from storage");
   // Create a storage reference from our storage service
   var storageRef = storage.ref();
   var gsReference = storage.refFromURL('gs://ecg-device.appspot.com/firestore/Pontus.jpg')
@@ -187,7 +172,7 @@ function getFromStorage(storage, reference){
     xhr.responseType = 'blob';
     xhr.onload = function(event) {
       var blob = xhr.response;
-      console.log(blob);
+      //console.log(blob);
       getData (blob);
     };
     xhr.open('GET', url);
@@ -206,6 +191,7 @@ function getFromStorage(storage, reference){
     // Handle any errors
   });
   }
+console.log("Datasource Loaded");
 }
 
 
@@ -244,9 +230,9 @@ function processData(allRows) {
       else{
         y.push( row[columns[j]] );
       }
-      if(i % 20000 == 0){
-        console.log(i);
-      }
+      //if(i % end == 0){
+      //  console.log(i);
+      //}
     }
     makePlotly( x, y, standard_deviation, j);
   }
@@ -297,3 +283,30 @@ else{
 }
 
 };
+
+function createListItem(arrayOfItems){
+  console.log("Creating List items");
+  var ul = document.querySelector("ul");
+
+  for(i=0; i < arrayOfItems.length; i++){
+
+    var li = document.createElement("a");
+    li.className = "list-group-item list-group-item-action";
+    li.setAttribute("id", "list_field_" + i);
+    li.setAttribute("value", i);
+    li.setAttribute('href', "#");
+    li.innerText = (arrayOfItems[i])[0];
+
+    ul.appendChild(li);
+    document.getElementById('list_field_' + i).onclick = function(event){
+      //console.log(event);
+      //console.log(event.target);
+      //console.log(event.target.attributes.value.value);
+      //console.log(event.target.innerText);
+      //console.log(listItems);
+      url2 = "https://cors-anywhere.herokuapp.com/" + (listItems[event.target.attributes.value.value])[1];
+      makeplot(url2);
+    }
+  }
+console.log("Done creating List items");
+}

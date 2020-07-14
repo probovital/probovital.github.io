@@ -19,6 +19,7 @@ var end = 2000;
 var list_index = 0;
 var urls = [];
 var listItems = [];
+var currentStorage = 'gs://ecg-device.appspot.com/firestore/MedDev200622:13:52:26EKGdata.csv';
 
 //export default !firebase.apps.length ? firebase.initializeApp(config) : firebase.app();
 
@@ -151,7 +152,7 @@ function getFromStorage(storage, reference){
   // Create a reference from a Google Cloud Storage URI
 
   if(reference == "1"){
-    gsReference = storage.refFromURL('gs://ecg-device.appspot.com/firestore/MedDev200622:13:52:26EKGdata.csv');
+    gsReference = storage.refFromURL(currentStorage);
 
       gsReference.getDownloadURL().then(function(url) {
       // `url` is the download URL for 'images/stars.jpg'
@@ -305,6 +306,7 @@ function createListItem(arrayOfItems){
       //console.log(event.target.innerText);
       //console.log(listItems);
       url2 = "https://cors-anywhere.herokuapp.com/" + (listItems[event.target.attributes.value.value])[1];
+      currentStorage = (listItems[event.target.attributes.value.value])[1];
       makeplot(url2);
     }
   }

@@ -19,6 +19,7 @@ var end = 2000;
 var list_index = 0;
 var urls = [];
 var listItems = [];
+var currentTitle = "MedDev200622:13:52:26EKGdata.csv";
 var currentStorage = 'gs://ecg-device.appspot.com/firestore/MedDev200622:13:52:26EKGdata.csv';
 
 //export default !firebase.apps.length ? firebase.initializeApp(config) : firebase.app();
@@ -26,6 +27,7 @@ var currentStorage = 'gs://ecg-device.appspot.com/firestore/MedDev200622:13:52:2
   async function run() {
 
   document.getElementById("test").style.display = "none";
+  document.getElementById("titleText").innerHTML = currentTitle;
 
 //try {
   firebase.initializeApp(firebaseConfig);
@@ -238,9 +240,8 @@ function processData(allRows) {
     makePlotly( x, y, standard_deviation, j);
   }
 
-
-
 }
+
 function makePlotly( x, y, standard_deviation, i){
   var plotDiv = document.getElementById("plot");
   var traces = [{
@@ -307,6 +308,8 @@ function createListItem(arrayOfItems){
       //console.log(listItems);
       url2 = "https://cors-anywhere.herokuapp.com/" + (listItems[event.target.attributes.value.value])[1];
       currentStorage = (listItems[event.target.attributes.value.value])[1];
+      currentTitle = event.target.innerText;
+      document.getElementById("titleText").innerHTML = currentTitle;
       makeplot(url2);
     }
   }

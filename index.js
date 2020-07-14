@@ -109,6 +109,9 @@ console.log("Firebase Loaded");
     document.getElementById('EKG_div').style.display = "block";
     getFromStorage(storage, "1");
   }
+  document.getElementById('labels').onclick = async function(){
+    f = open("labels.txt", "r");
+  }
 
 
 }

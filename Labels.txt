@@ -1,0 +1,15 @@
+This is a list of relevant labels for ECG data
+
+0 = Sinus Rhythm
+1 = Atrial fibrillation
+2 = Atrial flutter
+3 = Complete AV block
+4 = Bigeminy
+5 = Ectopic atrial Rhythm
+6 = Idioventricular Rhythm
+7 = Junctional Rhythm
+8 = Supraventricular tachycardia
+9 = Ventricular tachycardia
+10 = Wenckebach
+-1 = Noise
+-2 = Break

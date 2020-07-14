@@ -21,6 +21,7 @@ var urls = [];
 var listItems = [];
 var currentTitle = "MedDev200622:13:52:26EKGdata.csv";
 var currentStorage = 'gs://ecg-device.appspot.com/firestore/MedDev200622:13:52:26EKGdata.csv';
+var delimiter = ";";
 
 //export default !firebase.apps.length ? firebase.initializeApp(config) : firebase.app();
 
@@ -28,6 +29,7 @@ var currentStorage = 'gs://ecg-device.appspot.com/firestore/MedDev200622:13:52:2
 
   document.getElementById("test").style.display = "none";
   document.getElementById("titleText").innerHTML = currentTitle;
+  document.getElementById("delimiter").value = delimiter;
 
 //try {
   firebase.initializeApp(firebaseConfig);
@@ -111,6 +113,15 @@ console.log("Firebase Loaded");
   }
   document.getElementById('labels').onclick = async function(){
     f = open("labels.txt", "r");
+  }
+  document.getElementById('delimiter').onclick = async function(){
+    if(delimiter == ","){
+      delimiter = ";";
+    }
+    else{
+      delimiter =",";
+    }
+    document.getElementById('delimiter').value = delimiter;
   }
 
 
@@ -203,12 +214,12 @@ console.log("Datasource Loaded");
 
 function makeplot(url) {
   //Plotly.d3.csv("https://raw.githubusercontent.com/plotly/datasets/master/2014_apple_stock.csv", function(data){ processData(data) } );
-  Plotly.d3.dsv(';')(url, function(data){ processData(data) } );
+  Plotly.d3.dsv(delimiter)(url, function(data){ processData(data) } );
 };
 
 
 function processData(allRows) {
-  //console.log(allRows);
+  console.log(allRows);
   var x = [], y = [], standard_deviation = [];
   var columns = ['ECG', 'PPGRED', 'PPGIR', 'Label'
   ];
@@ -223,11 +234,14 @@ function processData(allRows) {
       row = allRows[i];
       x.push( i );
       if(columns[j] == 'Label'){
-        if( row[columns[j]] == "stall"){
+        if( row[columns[j]] == "stall" || row[columns[j]] == 0){
           y.push( 0 );
         }
-        else if(row[columns[j]] == "sitt"){
+        else if(row[columns[j]] == "sitt" || row[columns[j]] == 1){
           y.push( 1 );
+        }
+        else if(row[columns[j]] == -2){
+          y.push( -2 );
         }
         else{
             y.push(row[columns[j]]);

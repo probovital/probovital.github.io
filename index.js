@@ -174,9 +174,9 @@ function getFromStorage(storage, reference){
       gsReference.getDownloadURL().then(function(url) {
       // `url` is the download URL for 'images/stars.jpg'
       //Fixing the CORS problem
-      var cors1 = "http://gobetween.oklabs.org/";
+      var cors1 = "https://gobetween.oklabs.org/";
       var cors2 = "https://cors-anywhere.herokuapp.com/";
-      url2 = cors1 + url;
+      url2 = cors2 + url;
       console.log(url2);
         makeplot(url2);
     }).catch(function(error) {

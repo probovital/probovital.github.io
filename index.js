@@ -23,6 +23,7 @@ var currentTitle = "MedDev200622:13:52:26EKGdata.csv";
 var currentStorage = 'gs://ecg-device.appspot.com/firestore/MedDev200622:13:52:26EKGdata.csv';
 var delimiter = ";";
 
+
 //export default !firebase.apps.length ? firebase.initializeApp(config) : firebase.app();
 
   async function run() {
@@ -173,7 +174,9 @@ function getFromStorage(storage, reference){
       gsReference.getDownloadURL().then(function(url) {
       // `url` is the download URL for 'images/stars.jpg'
       //Fixing the CORS problem
-      url2 = "https://cors-anywhere.herokuapp.com/" + url;
+      var cors1 = "http://gobetween.oklabs.org/";
+      var cors2 = "https://cors-anywhere.herokuapp.com/";
+      url2 = cors1 + url;
       console.log(url2);
         makeplot(url2);
     }).catch(function(error) {

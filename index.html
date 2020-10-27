@@ -1,8 +1,12 @@
 <!doctype html>
+<meta charset="ISO-8859-1">
 
 <html lang="en">
   <head>
     <title>Pontus Modell</title>
+    <script src="pace.js"></script>
+    <link href="/pace/themes/pace-theme-barber-shop.css" rel="stylesheet" />
+    <link href="paceLoaderCorner.css" rel="stylesheet" />
     <!--Bootstrap -->
 
     <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.0/css/bootstrap.min.css"
@@ -45,8 +49,22 @@
 
   <body>
 
-
 <div >
+  <div class="row">
+    <div class="col-4">
+      <div id="chartly" style="width: 600px; height: 250px;">
+      </div>
+      </div>
+      <div class="col-6">
+        <div id="chartly_still" style="width: 1200px; height: 450px;">
+          <input type="Button" id="btnBack" value="<" class="btn btn-dark"/>
+          <input type="Button" id="btnPlay" value="Play" class="btn btn-dark"/>
+          <input type="Button" id="btnStop" value="||" class="btn btn-dark"/>
+          <input type="Button" id="btnNext" value=">" class="btn btn-dark"/>
+        </div>
+      </div>
+
+  </div>
   <div class="row">
     <div class="col-4"></div>
     <div class="col-4"align="center" style="margin-top:40px; margin-bottom:80px">

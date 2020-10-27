@@ -14,6 +14,21 @@ const firebaseConfig = {
   measurementId: "G-CYNRF73Q7L"
 };
 
+const plotlyLayout = {
+  xaxis: {
+showgrid: false,
+showline: false,
+visible: false
+},
+  yaxis: {
+showgrid: false,
+showline: false,
+visible: false
+},
+paper_bgcolor: 'rgba(0,0,0,0)',
+plot_bgcolor: 'rgba(0,0,0,0)'
+}
+
 var start = 0;
 var end = 2000;
 var list_index = 0;
@@ -22,9 +37,71 @@ var listItems = [];
 var currentTitle = "MedDev200622:13:52:26EKGdata.csv";
 var currentStorage = 'gs://ecg-device.appspot.com/firestore/MedDev200622:13:52:26EKGdata.csv';
 var delimiter = ";";
+var ecgArray = [];
+var ecgLoaded = false;
+var currentIndex = 0;
+var windowLength = 3000;
 
 
 //export default !firebase.apps.length ? firebase.initializeApp(config) : firebase.app();
+
+function initializeData(startIndex, endIndex){
+  return ecgArray.slice(startIndex,endIndex);
+}
+function getEcgData(dataItem){
+  return ecgArray.slice(dataItem, dataItem+10);
+}
+
+function loadPlotlyTimeSeries(){
+
+  Plotly.plot('chartly', [{
+    y:initializeData(0, windowLength),
+    type:'line'
+  }], plotlyLayout);
+Plotly.newPlot('chartly_still', [{y:initializeData(0, windowLength), type:'line'}], plotlyLayout);
+  var cnt = windowLength;
+  if(ecgLoaded==false){
+    //Plotly.extendTraces('chartly', {y:[initializeData()]}, [0] )
+    setInterval(function(){
+      cnt +=10;
+      Plotly.extendTraces('chartly', {y:[getEcgData(cnt)]}, [0] )
+      if(cnt > windowLength){
+        Plotly.relayout('chartly', {
+          xaxis: {
+            range: [cnt-windowLength, cnt]
+          }
+        })
+      }
+    },10);
+  }
+  ecgLoaded = true;
+  var myPlot = document.getElementById('chartly');
+  myPlot.on('plotly_click', function(data){
+    var pts = '';
+    for(var i=0; i < data.points.length; i++){
+        pts = 'x = '+data.points[i].x +'\ny = '+
+            data.points[i].y.toPrecision(4) + '\n\n';
+    }
+    alert('Closest point clicked:\n\n'+pts);
+});
+myPlot = document.getElementById('chartly_still');
+myPlot.on('plotly_click', function(data){
+  var pts = '';
+  for(var i=0; i < data.points.length; i++){
+      pts = 'x = '+data.points[i].x +'\ny = '+x g
+          data.points[i].y.toPrecision(4) + '\n\n';
+  }
+  alert('Closest point clicked:\n\n'+pts);
+});
+}
+
+function plotlyUpdate(startTime, endTime){
+  Plotly.react('chartly_still', [{y:initializeData(startTime, (endTime)), x:range(startTime, (endTime)), type:'line'}], plotlyLayout);
+  Plotly.relayout('chartly_still', {
+    xaxis: {
+      range: [startTime, (endTime)]
+    }})
+}
 
   async function run() {
 
@@ -79,6 +156,24 @@ console.log("Firebase Loaded");
   });
 
   getFromStorage(storage, "1");
+
+    document.getElementById('btnNext').onclick = function(){
+      currentIndex += windowLength;
+      plotlyUpdate(currentIndex, currentIndex+windowLength)
+    }
+    document.getElementById('btnBack').onclick = function(){
+      if(currentIndex >= windowLength){
+        currentIndex -= windowLength;
+        plotlyUpdate(currentIndex, currentIndex+windowLength)
+      }
+      else if(currentIndex > 0){
+        currentIndex = 0;
+        plotlyUpdate(currentIndex, currentIndex+windowLength)
+      }
+    }
+
+
+    "btnNext"
 
   document.getElementById('load_graph').onclick = async function(){
     start = document.getElementById('start').value;
@@ -290,6 +385,9 @@ function makePlotly( x, y, standard_deviation, i){
   //console.log(i);
 if (i == 0){
   Plotly.newPlot('EKG_div', traces, layout);
+  ecgArray = y;
+  loadPlotlyTimeSeries();
+
 }
 else if (i == 1){
   Plotly.newPlot('PPG_Red_div', traces,
@@ -335,3 +433,27 @@ function createListItem(arrayOfItems){
   }
 console.log("Done creating List items");
 }
+
+
+function range(start, stop, step) {
+    if (typeof stop == 'undefined') {
+        // one param defined
+        stop = start;
+        start = 0;
+    }
+
+    if (typeof step == 'undefined') {
+        step = 1;
+    }
+
+    if ((step > 0 && start >= stop) || (step < 0 && start <= stop)) {
+        return [];
+    }
+
+    var result = [];
+    for (var i = start; step > 0 ? i < stop : i > stop; i += step) {
+        result.push(i);
+    }
+
+    return result;
+};

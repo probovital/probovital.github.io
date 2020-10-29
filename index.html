@@ -5,7 +5,6 @@
   <head>
     <title>Pontus Modell</title>
     <script src="pace.js"></script>
-    <link href="/pace/themes/pace-theme-barber-shop.css" rel="stylesheet" />
     <link href="paceLoaderCorner.css" rel="stylesheet" />
     <!--Bootstrap -->
 
@@ -41,31 +40,79 @@
         <script defer src="/__/firebase/7.15.3/firebase-storage.js"></script>
 
         <script defer src="/__/firebase/init.js"></script> -->
-
+    <script src="firebase.js"></script>
+    <script src="oldIndexCode.js"></script>
     <script src="index.js"></script>
 
   </head>
 
 
-  <body>
+<body>
 
+<!-- Chart-->
 <div >
   <div class="row">
-    <div class="col-4">
-      <div id="chartly" style="width: 600px; height: 250px;">
+    <div class="col-4" style="display:none">
+      <div id="chartly" style="width: 600px; height: 250px">
       </div>
+    </div>
+    <div class="col-12"align="center">
+      <div id="chartly_still" style="width: 1400px; height: 450px;">
       </div>
-      <div class="col-6">
-        <div id="chartly_still" style="width: 1200px; height: 450px;">
-          <input type="Button" id="btnBack" value="<" class="btn btn-dark"/>
-          <input type="Button" id="btnPlay" value="Play" class="btn btn-dark"/>
-          <input type="Button" id="btnStop" value="||" class="btn btn-dark"/>
-          <input type="Button" id="btnNext" value=">" class="btn btn-dark"/>
-        </div>
-      </div>
-
+    </div>
   </div>
-  <div class="row">
+
+  <!-- OnClick popup-->
+  <div class="container bg-light border border-secondary"id="clickDialog" style="display:none; width: 400px;">
+    <div class="row">
+      <div class="col-10"></div>
+      <div class="col-2">
+        <input type="Button" id="popupCancel" value="x" class="btn"style="margin-bottom:00px">
+      </div>
+    </div>
+    <div class="row">
+      <div class="col-12"align="center" style="margin-bottom:20px">
+        <div class="text" id="selectedPointsText"></div>
+      </div>
+    </div>
+    <div class="row">
+      <div class="col-12"align="center" style="margin-bottom:20px">
+        <div class="text">Select if the algorithm missed a pulse or falsely sensed a pulse where no QRS complex was seen</div>
+      </div>
+    </div>
+    <div class="row">
+      <div class="col-12"align="center" style="margin-bottom:40px">
+        <input type="Button" id="btnMissingPulse" value="Missing" class="btn btn-dark" style="margin-right:40px">
+        <input type="Button" id="btnFalsePulse" value="Incorrect" class="btn btn-dark" style="margin-left:40px"/>
+      </div>
+    </div>
+  </div>
+
+
+<!-- Chart-buttons-->
+  <div class="row"  >
+    <div class="col-12"align="center" style="margin-bottom:80px">
+      <input type="Button" id="btnBack" value="<" class="btn btn-dark"/>
+      <input type="Button" id="btnUpload" value="Upload" class="btn btn-dark"/>
+      <input type="Button" id="btnStop" value="Undo" class="btn btn-dark"/>
+      <input type="Button" id="btnNext" value=">" class="btn btn-dark"/>
+    </div>
+  </div>
+
+
+  <!-- Chart stats-->
+  <div class="container bg-light border border-secondary"id="chartStats" style="width: 300px; margin-top:20px; margin-bottom:80px">
+    <div class="row">
+      <div class="col-12"align="center" style="margin-top:40px; margin-bottom:0px">
+        <div class="text" id="chartStatText"></div>
+      </div>
+    </div>
+  </div>
+
+
+
+
+  <div class="row"style="display:none">
     <div class="col-4"></div>
     <div class="col-4"align="center" style="margin-top:40px; margin-bottom:80px">
       <input type="Button" id="all" value="All" class="btn btn-dark"/>
@@ -76,27 +123,27 @@
     </div>
     <div class="col-4"></div>
   </div>
-  <div class="row">
+  <div class="row"style="display:none">
     <div class="col-12" align="center"style="margin-bottom:40px" id="titleText">
     <div class="text">Hello world</div>
     </div>
   </div>
-    <div class="row">
+    <div class="row"style="display:none">
       <div class="col-12"align="center">
         <div id="EKG_div" style="width: 1600px; height: 250px;"><!-- Plotly chart will be drawn inside this DIV --></div>
       </div>
 
       </div>
 
-      <div class="row">
+      <div class="row"style="display:none">
         <div class="col-12"align="center"><div id="PPG_IR_div" style="width: 1600px; height: 250px;"><!-- Plotly chart will be drawn inside this DIV --></div></div>
       </div>
 
-      <div class="row">
+      <div class="row"style="display:none">
         <div class="col-12"align="center"><div id="PPG_Red_div" style="width: 1600px; height: 250px;"><!-- Plotly chart will be drawn inside this DIV --></div></div>
       </div>
 
-      <div class="row">
+      <div class="row"style="display:none">
         <div class="col-12"align="center"><div id="labels_div" style="width: 1600px; height: 250px;"><!-- Plotly chart will be drawn inside this DIV --></div></div>
       </div>
 
@@ -132,7 +179,7 @@
       <div class="row">
         <div class="col-3"></div>
         <div class="col-6"align="center">
-        <ul class="list-group">
+        <ul class="list-group", id="recordsList">
         </ul>
         </div>
         <div class="col-3"></div>
@@ -142,6 +189,7 @@
         <div class="col-12"align="center" style="margin-top:40px; margin-bottom:40px">
           <div class="text">Delimiter</div>
           <input type="Button" id="delimiter" value="delimiter" class="btn btn-dark"/>
+          <input type="Button" id="storageRefButton" value="Evaluated" class="btn btn-dark"/>
         </div>
       </div>
 

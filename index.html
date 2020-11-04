@@ -16,11 +16,19 @@
     <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
     <!-- Plotly-->
 
+    <script src="https://cdn.jsdelivr.net/npm/low-pass-filter"></script>
+    <!-- Low pass filter-->
+
+
+
     <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@1.0.0/dist/tf.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js@2.8.0"></script>
     <!-- Import tfjs-vis -->
     <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs-vis@1.0.2/dist/tfjs-vis.umd.min.js"></script>
+    <script src="math.js"></script>
+    <script src="fft.js"></script>
     <script src="papaparse.min.js"></script>
+    <script src="dsp.js"></script>
     <!-- Insert these scripts at the bottom of the HTML, but before you use any Firebase services -->
     <!--<script src="https://www.gstatic.com/firebasejs/7.14.1/firebase-app.js"></script> -->
     <script src="https://www.gstatic.com/firebasejs/7.15.3/firebase-app.js"></script>
@@ -52,9 +60,7 @@
 <!-- Chart-->
 <div >
   <div class="row">
-    <div class="col-4" style="display:none">
-      <div id="chartly" style="width: 600px; height: 250px">
-      </div>
+    <div class="col-4">
     </div>
     <div class="col-12"align="center">
       <div id="chartly_still" style="width: 1400px; height: 450px;">
@@ -94,8 +100,38 @@
     <div class="col-12"align="center" style="margin-bottom:80px">
       <input type="Button" id="btnBack" value="<" class="btn btn-dark"/>
       <input type="Button" id="btnUpload" value="Upload" class="btn btn-dark"/>
+      <input type="Button" id="btnFilter" value="Filtered" class="btn btn-dark"/>
       <input type="Button" id="btnStop" value="Undo" class="btn btn-dark"/>
       <input type="Button" id="btnNext" value=">" class="btn btn-dark"/>
+    </div>
+  </div>
+
+  <!-- Median beat-->
+  <div class="row">
+    <div class="col-12"align="center">
+      <div id="median" style="width: 600px; height: 450px">
+      </div>
+    </div>
+  </div>
+  <div class="row">
+    <div class="col-12"align="center" style="margin-bottom:80px">
+      <input type="text" class="form-control" style="width: 80px" id= "medianNumberOfBeats" placeholder="10"/>
+      <input type="Button" id="btnReloadMedian" value="Reload" class="btn btn-dark"/>
+    </div>
+  </div>
+
+  <!-- Frequencies-->
+  <div class="row">
+    <div class="col-12"align="center">
+      <div id="frequencies" style="width: 600px; height: 450px">
+      </div>
+    </div>
+  </div>
+  <div class="row">
+    <div class="col-12"align="center" style="margin-bottom:80px">
+      <input type="text" class="form-control" style="width: 80px" id= "lowPass" placeholder="lowpass"/>
+      <input type="text" class="form-control" style="width: 80px" id= "highPass" placeholder="highpass"/>
+      <input type="Button" id="btnReloadFilter" value="Reload" class="btn btn-dark"/>
     </div>
   </div>
 

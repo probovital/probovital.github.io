@@ -391,7 +391,6 @@ function processData(allRows) {
 catch(TypeError){
   console.log("Error: No data loaded");
 }
-
 }
 
 
@@ -741,26 +740,42 @@ function fourierFiltering(signal){
   var lowPassCorrected = Math.floor(lowPass*fs)
 
   var gaussFilter = [[]]
+  var gaussFilter2 = []
   for(var i = 0; i < length; i++){
     rowI = []
     for(var j =0; j< length; j++){
       rowI.push(0);
     }
     gaussFilter.push(rowI)
+    gaussFilter2.push(0)
   }
   gaussFilter.shift()
 
-  var sigma = 8
-  r = 20
+  var sigma = 150
+  var r = 200
+
 
   for(var k = 0; k < length; k++){
     for(var i = 0; i<r; i++){
-      gaussFilter[k][i] = Math.exp(Math.pow(-(i),2)/(2*Math.pow(sigma,2)))
+      gaussFilter[k][i] = Math.exp(-Math.pow((i),2)/(2*Math.pow(sigma,2)))
+      gaussFilter[k][length-i] = gaussFilter[k][i]
     }
-    gaussFilter[k][length-i] = gaussFilter[k][i]
+    for(var i = 0; i<r; i++){
+      gaussFilter2[i] = gaussFilter[k][i]
+      gaussFilter2[length-i] = gaussFilter[k][length-i]
+    }
+
   }
   console.log("Gauss filter")
-  console.log(gaussFilter)
+  console.log(gaussFilter2)
+  myPlot = document.getElementById('frequencies');
+  Plotly.purge(myPlot);
+  plotlyLayout.title = "Frequencies";
+  Plotly.newPlot(myPlot, [initializeData2(gaussFilter2, 0, gaussFilter2.length, "Frequencies")], plotlyLayout);
+  Plotly.relayout(myPlot, {
+    xaxis: {
+      range: [0, gaussFilter2.length]
+    }})
 
 
   //gauss(1:r+1) = exp(-(1:r+1).^ 2 / (2 * sigma ^ 2));  % +ve frequencies
@@ -775,6 +790,10 @@ function fourierFiltering(signal){
   //  signal[i].im= 0*im1
   //  signal[length-i].im= 0*im1
   //}
+  //for(var i = 0; i<signal.length; i++){
+//    signal[i].re *= gaussFilter2[i]
+  //  signal[i].im *= gaussFilter2[i]
+  //}
 
   for(var i = 0; i<highPass; i++){
     signal[i].re = 0
@@ -782,7 +801,7 @@ function fourierFiltering(signal){
     signal[i].im= 0*im1
     signal[length-i].im= 0*im1
   }
-   fourierFilter = egenReversDFT(signal)
+   fourierFilter = egenReversDFT(signal, gaussFilter)
 }
 
 

@@ -50,6 +50,7 @@ var evaluateStorageRef = 'evaluated';
 var delimiter = ";";
 var rawECGArray = [];
 var ecgArray = [];
+var deltaSignal = [];
 var fourierFilter = [];
 var pulseArray = [];
 var missingArray = [];
@@ -61,7 +62,7 @@ var storageRef;
 var signalToNoise = 0;
 var filterValue = "Filtered";
 var lowPass = 500
-var highPass = 10
+var highPass = 100
 
 var selectedPoint = 0;
 var latestAction = [];
@@ -86,7 +87,9 @@ function makeTrace(data, startIndex, endIndex, name, color, type){
 
 
 function loadPlotlyTimeSeries(ecgData){
-frequencyPlot(rawECGArray.slice(0,3000));
+frequencyPlot(rawECGArray);
+//frequencyPlot(rawECGArray.slice(0,3000));
+//frequencyPlot(rawECGArray.slice(0,2048));
 
 currentIndex = 0;
 myPlot = document.getElementById('chartly_still');
@@ -139,13 +142,23 @@ function plotlyUpdate(startTime, endTime){
 
 
 async function run() {
+  deltaSignal = deltaFunction(windowLength);
   console.log("Test array")
   console.log(testArray)
+  //zeroPadding(testArray)
 //  console.log("FFT of Test array")
 //  console.log(egenDFT(testArray))
-  var frequencies = egenDFT(testArray)
-  egenReversDFT(frequencies)
+  //var frequencies = egenDFT(testArray)
+  //egenReversDFT(frequencies)
   //egenDFT(egenDFT(testArray),false)
+
+  //fftTime(testArray)
+  var frequencies = myfft(testArray)
+  console.log("Frequencies")
+  console.log(frequencies)
+  console.log("Reversed Frequencies"+mySignalReverser(frequencies))
+  console.log("Return signal"+myInverseFFTer(myfft(mySignalReverser(frequencies))))
+  console.log(myInverseFFTer(myfft(mySignalReverser(frequencies))))
 
 
 //  var reverse = new RFFT(transform, 12)
@@ -214,6 +227,9 @@ console.log("Firebase Loaded");
     else if(filterValue=="Raw"){
       filterValue="Fourier";
     }
+    else if(filterValue=="Fourier"){
+      filterValue="DeltaFunction";
+    }
     else{
       filterValue="Filtered";
     }
@@ -221,6 +237,12 @@ console.log("Firebase Loaded");
     //loadPlotlyTimeSeries(returnCurrentECGFilter());
     plotlyUpdate(0, 3000);
     calculateChartStats();
+
+    //var medianBeatArray = []
+    //for(var i=-5; i <5; i++){
+    //  medianBeatArray.push(calculateMedianBeat(index=i))
+    //}
+    //displayMedianBeat(medianBeatDistorted(medianBeatArray));
     displayMedianBeat(calculateMedianBeat());
     document.getElementById('btnFilter').value = filterValue;
   }
@@ -280,8 +302,6 @@ console.log("Firebase Loaded");
       loadFromStorage(storageRef);
     }
   }
-
-
 
 }
 
@@ -384,12 +404,18 @@ function processData(allRows) {
   loadPlotlyTimeSeries(ecgArray);
   plotlyUpdate(0, 3000);
   calculateChartStats();
+  //var medianBeatArray = []
+  //for(var i=-5; i <5; i++){
+  //  medianBeatArray.push(calculateMedianBeat(index=i))
+  //}
+  //displayMedianBeat(medianBeatDistorted(medianBeatArray));
   displayMedianBeat(calculateMedianBeat());
 
 
 }
 catch(TypeError){
   console.log("Error: No data loaded");
+  console.log(TypeError)
 }
 }
 
@@ -494,6 +520,9 @@ function returnCurrentECGFilter(){
   else if(filterValue=="Fourier"){
     return fourierFilter;
   }
+  if(filterValue=="DeltaFunction"){
+    return deltaSignal;
+  }
   else{
     return rawECGArray;
   }
@@ -584,7 +613,7 @@ document.getElementById('chartStatText').innerText =  "Algorithm pulse detection
 }
 
 
-function calculateMedianBeat(beatNumber=5){
+function calculateMedianBeat(beatNumber=5, index=0){
   var medianBeatArray = [];
   var beatRange = 0;
   var beatIndexes = [];
@@ -620,7 +649,7 @@ function calculateMedianBeat(beatNumber=5){
     for(var i=0; i < numberOfBeats; i++){
       if ((beatIndexes[i]-beatRange) > 0 & (beatIndexes[i]+beatRange) < ecgArray.length){
         var value = beatIndexes[i] - beatRange + j;
-        var thisValue =returnCurrentECGFilter()[value];
+        var thisValue =returnCurrentECGFilter()[value+index];
 
         pointValues.push(thisValue);
       }
@@ -634,6 +663,19 @@ function calculateMedianBeat(beatNumber=5){
   //skapa ny array medianBeat där varje värde är medianvärdet av värdena för index
 
   return medianBeatArray;
+}
+
+function medianBeatDistorted(arrayOfMedianBeats){
+  medianBeatArray = []
+
+  for(var i = 0; i<arrayOfMedianBeats[0].length;i++){
+    var medianValue = []
+    for(var j = 0; j<arrayOfMedianBeats.length;j++){
+      medianValue.push(arrayOfMedianBeats[j][i])
+    }
+    medianBeatArray.push(calculateMedian(medianValue))
+  }
+  return medianBeatArray
 }
 
 function displayMedianBeat(array){
@@ -708,7 +750,19 @@ function flipECG(beatNumber=10){
 }
 
 function frequencyPlot(signal){
-  var frequencies = egenDFT(signal)
+  console.log("FFT algorithms: ")
+  console.log(rawECGArray)
+  var paddedSignal = zeroPadding(signal)
+  console.log(rawECGArray)
+  var frequencies = fftTime(paddedSignal);
+  console.log("Freq"+frequencies)
+  console.log("Signal"+signal)
+
+  //console.log("Reversed Frequencies"+mySignalReverser(signal))
+  //console.log("Return signal"+fftTime(mySignalReverser(paddedSignal)))
+//  var frequencies = egenDFT(signal)
+  //console.log("Freq2" +frequencies)
+  var deltaFrequencies = egenDFT(deltaSignal)
   var reals = []
   for(var i = 0; i < frequencies.length; i++){
     reals.push(frequencies[i].re)
@@ -723,7 +777,24 @@ function frequencyPlot(signal){
     }})
   console.log("Frequency plot created")
 
-  fourierFiltering(frequencies)
+
+  console.log("InverseDFT Starts")
+  var n = timeTaken();
+  fourierFilter = fourierFiltering(frequencies)
+
+  //Cutting the end of the filtered fourierSignal
+  var padding = fourierFilter.length-rawECGArray.length
+  for(var i = 0; i < padding; i++){
+    fourierFilter.pop()
+  }
+  console.log("Time taken: ")
+  var n2 = timeTaken();
+  var deltaTime = n2-n;
+  console.log(deltaTime)
+  var newFilter = myInversefft(frequencies);
+  console.log("Inverse FFT"+newFilter)
+  deltaSignal = fourierFiltering(deltaFrequencies)
+  console.log(rawECGArray)
 
 //  egenReversDFT(frequencies)
 }
@@ -751,8 +822,8 @@ function fourierFiltering(signal){
   }
   gaussFilter.shift()
 
-  var sigma = 150
-  var r = 200
+  var sigma = 250
+  var r = 1500
 
 
   for(var k = 0; k < length; k++){
@@ -766,8 +837,8 @@ function fourierFiltering(signal){
     }
 
   }
-  console.log("Gauss filter")
-  console.log(gaussFilter2)
+  //console.log("Gauss filter")
+  //console.log(gaussFilter2)
   myPlot = document.getElementById('frequencies');
   Plotly.purge(myPlot);
   plotlyLayout.title = "Frequencies";
@@ -794,6 +865,10 @@ function fourierFiltering(signal){
 //    signal[i].re *= gaussFilter2[i]
   //  signal[i].im *= gaussFilter2[i]
   //}
+  for(var i = 0; i<signal.length; i++){
+    signal[i].re *= gaussFilter2[i]
+    signal[i].im *= gaussFilter2[i]
+  }
 
   for(var i = 0; i<highPass; i++){
     signal[i].re = 0
@@ -801,7 +876,16 @@ function fourierFiltering(signal){
     signal[i].im= 0*im1
     signal[length-i].im= 0*im1
   }
-   fourierFilter = egenReversDFT(signal, gaussFilter)
+  return  egenReversDFT(signal)
+}
+
+function deltaFunction(signalLength){
+  var deltaSignal = []
+  deltaSignal.push(1);
+  for(var i = 1; i < signalLength;i++){
+    deltaSignal.push(0)
+  }
+  return deltaSignal;
 }
 
 

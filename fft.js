@@ -5,10 +5,57 @@ var testArray = [ 0.4967, -0.1383,  0.6477,  1.523 , -0.2342, -0.2341,  1.5792,
       -0.6006, -0.2917, -0.6017,  1.8523]
 
 
+function fftTime(signal){
+  console.log("FFT Starts")
+  var n = timeTaken();
+
+  var frequencies = myfft(signal)
+
+  console.log("Time taken: ")
+
+  var n2 = timeTaken();
+  var deltaTime = n2-n;
+  console.log(deltaTime)
+  return frequencies
+}
+function timeTaken(){
+  var d = new Date();
+  var n = d.getTime();
+  return n;
+}
+
+function zeroPadding(signal){
+  var paddedSignal = []
+  for(var i = 0; i < signal.length;i++){
+    paddedSignal.push(signal[i])
+  }
+
+  var closestI = 0
+  console.log("Signal is "+ signal.length +" long: ")
+  for(var i = 2; i < signal.length +1; i = i*2 ){
+    closestI = i
+  }
+  console.log("Closest multiple of two: "+closestI)
+  if(closestI == signal.length){
+    console.log("Padded signal length: "+paddedSignal.length)
+    return paddedSignal
+  }
+  else{
+    for(var i = signal.length; i < closestI *2; i++){
+      paddedSignal.push(0)
+    }
+    console.log("Padded signal length: "+paddedSignal.length)
+    return paddedSignal
+  }
+}
+
 function myfft(signal) {
+
   var X = signal
   var N = X.length;
   if (N <= 1) {
+    //console.log("Recursion stops here")
+    //console.log("Value: "+X)
     return X;
   }
   var M = N/2;
@@ -30,6 +77,62 @@ function myfft(signal) {
     X[k] = odd[k] = math.add(even[k], t);
     X[k+M] = even[k] = math.subtract(even[k], t);
   }
+  //console.log("This is the returned signal")
+  //console.log(X)
+
+  return X;
+}
+
+function mySignalReverser(signal){
+  var N = signal.length;
+  var reversedSignal = []
+  for(var i = 0; i < N; i++){
+    reversedSignal.push(0)
+  }
+  for (var i=0; i < signal.length; i++){
+    reversedSignal[N-1-i] = Math.sqrt(Math.pow(signal[i].re,2)+Math.pow(signal[i].im,2));
+
+    //reversedSignal[N-1-i] = signal[i].re
+  }
+
+  return reversedSignal
+}
+function myInverseFFTer(signal){
+  var correctedSignal = []
+  for(var i = 0; i<signal.length;i++){
+    correctedSignal.push(signal[i])
+    correctedSignal[i].re = correctedSignal[i].re/signal.length
+    correctedSignal[i].im = correctedSignal[i].im/signal.length
+  }
+  return correctedSignal
+}
+
+
+function myInversefft(X){
+  var N = X.length;
+  if (N <= 1) {
+    return X;
+  }
+  var M = N/2;
+  var even = [];
+  var odd = [];
+  even.length = M;
+  odd.length = M;
+  for (var i = 0; i < M; ++i) {
+    even[i] = X[i*2];
+    odd[i] = X[i*2+1];
+  }
+  even = myInversefft(even);
+  odd = myInversefft(odd);
+  var a = 2*math.pi;
+  for (var n = 0; n < M; ++n) {
+    // t = exp(-2PI*i*k/N) * X_{k+N/2} (in two steps)
+    var t = math.exp(math.complex(0, a*n/N));
+    t = math.multiply(t, odd[n]);
+    X[n] = odd[n] = math.add(even[n], t) / N;
+    X[n+M] = even[n] = math.add(even[n], t) / N;
+  }
+
   return X;
 }
 
@@ -68,32 +171,6 @@ function minFFT(X, even = true){
   return X
 }
 
-function myInversefft(X){
-  var N = X.length;
-  if (N <= 1) {
-    return X;
-  }
-  var M = N/2;
-  var even = [];
-  var odd = [];
-  even.length = M;
-  odd.length = M;
-  for (var i = 0; i < M; ++i) {
-    even[i] = X[i*2];
-    odd[i] = X[i*2+1];
-  }
-  even = myInversefft(even);
-  odd = myInversefft(odd);
-  var a = 2*math.pi;
-  for (var n = 0; n < M; ++n) {
-    // t = exp(-2PI*i*k/N) * X_{k+N/2} (in two steps)
-    var t = math.exp(math.complex(0, a*n/N));
-    t = math.multiply(t, odd[n]);
-    X[n] = odd[n] = math.add(even[n], t) / N;
-    X[n+M] = even[n] = math.subtract(even[n], t) / N;
-  }
-  return X;
-}
 
 // generate linear space from A to B with S intervals
 function linspace(A,B,S) {
@@ -284,7 +361,7 @@ function dotProduct(signal, matrix, imaginary=false, filter = 0){
 function egenDFT(signal){
   var N = signal.length
   var matriser = egenDFTcykel(signal)
-  console.log(matriser)
+  //console.log(matriser)
   var C = matriser[0]
   var S = matriser[1]
   //console.log(C)
@@ -293,14 +370,14 @@ function egenDFT(signal){
   var Sdot = dotProduct(signal, S, true);
 
 
-  console.log("Sdot"+Sdot)
-  console.log(Sdot[1])
+  //console.log("Sdot"+Sdot)
+  //console.log(Sdot[1])
 
   frequencies = []
   for(var i = 0; i<Sdot.length;i++){
     frequencies.push(math.complex(Cdot[i], -Sdot[i].im))
   }
-  console.log("Frequencies"+ frequencies)
+  //console.log("Frequencies"+ frequencies)
   return frequencies
 
 }
@@ -311,12 +388,12 @@ function egenReversDFT(signal, filter=0){
 
   var im1 = math.complex(0, 1).im
   var testValue = signal[1]
-  console.log("Signal:"+signal[1])
-  console.log(testValue.re)
-  console.log(testValue.im)
+  //console.log("Signal:"+signal[1])
+  //console.log(testValue.re)
+  //console.log(testValue.im)
   var N = signal.length
   var matriser = egenDFTcykel(signal)
-  console.log(matriser)
+  //console.log(matriser)
   var C = matriser[0]
   var S = matriser[1]
   //console.log(C)
@@ -342,10 +419,10 @@ function egenReversDFT(signal, filter=0){
     var Sdot = dotProduct(signalIm, S, true, filter);
   }
 
-  console.log("Cdot")
-  console.log(Cdot)
-  console.log("Sdot")
-  console.log(Sdot)
+  //console.log("Cdot")
+  //console.log(Cdot)
+  //console.log("Sdot")
+  //console.log(Sdot)
 
   var newCdot = []
   var newSdot = []
@@ -356,12 +433,12 @@ function egenReversDFT(signal, filter=0){
     //frequencies.push(math.complex((Cdot[i]/N), (Sdot[i].im/N)))
     frequencies.push((Cdot[i]/N) - (Sdot[i].im/N*im1))
   }
-  console.log("New Cdot")
-  console.log(newCdot)
-  console.log("New Sdot")
-  console.log(newSdot)
-  console.log("Återskapad signal")
-  console.log(frequencies)
+  //console.log("New Cdot")
+  //console.log(newCdot)
+  //console.log("New Sdot")
+  //console.log(newSdot)
+  //console.log("Återskapad signal")
+  //console.log(frequencies)
   return frequencies
 }
 
@@ -378,9 +455,9 @@ function egenDFT2(signal, reverse=false){
     one_cycle.push(2 * math.pi * i / N)
   }
 
-  console.log(C)
-  console.log(S)
-  console.log("One cycle" + one_cycle)
+  //console.log(C)
+  //console.log(S)
+  //console.log("One cycle" + one_cycle)
 
   for(var k = 0; k <N; k++){
     var t_k = []
@@ -415,14 +492,14 @@ function egenDFT2(signal, reverse=false){
 
 
   }
-  console.log("Cdot"+Cdot)
-  console.log("Sdot1"+Sdot[1])
+  //console.log("Cdot"+Cdot)
+  //console.log("Sdot1"+Sdot[1])
   if(reverse == false){
     frequencies = []
     for(var i = 0; i<Sdot.length;i++){
       frequencies.push(math.complex(Cdot[i], -Sdot[i].im))
     }
-    console.log("Frequencies"+ frequencies)
+    //console.log("Frequencies"+ frequencies)
     return frequencies
   }
   else{
@@ -430,7 +507,7 @@ function egenDFT2(signal, reverse=false){
     for(var i = 0; i<Sdot.length;i++){
       returnSignal.push(math.complex(Cdot[i]/N, Sdot[i].im/N))
     }
-    console.log("Signal"+ returnSignal)
+    //console.log("Signal"+ returnSignal)
     return returnSignal
   }
 

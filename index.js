@@ -51,7 +51,9 @@ var delimiter = ";";
 var rawECGArray = [];
 var ecgArray = [];
 var deltaSignal = [];
+var stepSignal = [];
 var fourierFilter = [];
+var philipsFilter = [];
 var pulseArray = [];
 var missingArray = [];
 var falsePulseArray = [];
@@ -63,6 +65,11 @@ var signalToNoise = 0;
 var filterValue = "Filtered";
 var lowPass = 500
 var highPass = 100
+var newBeats = []
+var medianBeat = []
+var storage = 0;
+var database = 0;
+
 
 var selectedPoint = 0;
 var latestAction = [];
@@ -87,7 +94,15 @@ function makeTrace(data, startIndex, endIndex, name, color, type){
 
 
 function loadPlotlyTimeSeries(ecgData){
-frequencyPlot(rawECGArray);
+//frequencyPlot(rawECGArray.slice(0, 4000));
+philipsFilter = meanFilter(rawECGArray, k=8);
+
+//philipsFilter = philipFilter(philipFilter(philipFilter(philipFilter(rawECGArray).reverse())).reverse());
+//philipsFilter = pontusBandPass(pontusBandPass(pontusBandPass(pontusBandPass(rawECGArray))))
+
+//philipsFilter = teagerKaiserEnergyOperator(standardize( philipFilter(meanFilter(rawECGArray))));
+
+//philipsFilter = meanFilter(rawECGArray);
 //frequencyPlot(rawECGArray.slice(0,3000));
 //frequencyPlot(rawECGArray.slice(0,2048));
 
@@ -143,8 +158,9 @@ function plotlyUpdate(startTime, endTime){
 
 async function run() {
   deltaSignal = deltaFunction(windowLength);
-  console.log("Test array")
-  console.log(testArray)
+  stepSignal = stepFunction(600);
+//  console.log("Test array")
+//  console.log(testArray)
   //zeroPadding(testArray)
 //  console.log("FFT of Test array")
 //  console.log(egenDFT(testArray))
@@ -153,12 +169,12 @@ async function run() {
   //egenDFT(egenDFT(testArray),false)
 
   //fftTime(testArray)
-  var frequencies = myfft(testArray)
-  console.log("Frequencies")
-  console.log(frequencies)
-  console.log("Reversed Frequencies"+mySignalReverser(frequencies))
-  console.log("Return signal"+myInverseFFTer(myfft(mySignalReverser(frequencies))))
-  console.log(myInverseFFTer(myfft(mySignalReverser(frequencies))))
+  //var frequencies = myfft(testArray)
+//  console.log("Frequencies")
+//  console.log(frequencies)
+//  console.log("Reversed Frequencies"+mySignalReverser(frequencies))
+//  console.log("Return signal"+myInverseFFTer(myfft(mySignalReverser(frequencies))))
+//  console.log(myInverseFFTer(myfft(mySignalReverser(frequencies))))
 
 
 //  var reverse = new RFFT(transform, 12)
@@ -172,8 +188,8 @@ async function run() {
 console.log("Loading Firebase");
 const firebaseApp = firebase;
   // Get a reference to the storage service, which is used to create references in your storage bucket
-  var storage = firebase.storage();
-  var database = firebase.database();
+  storage = firebase.storage();
+  database = firebase.database();
   storageRef = storage.ref(baseStorageRef);
 
   //var gsReference = storage.refFromURL('gs://ecg-device.appspot.com/firestore/')
@@ -230,6 +246,9 @@ console.log("Firebase Loaded");
     else if(filterValue=="Fourier"){
       filterValue="DeltaFunction";
     }
+    else if(filterValue=="DeltaFunction"){
+      filterValue="PhilipsFilter";
+    }
     else{
       filterValue="Filtered";
     }
@@ -247,9 +266,7 @@ console.log("Firebase Loaded");
     document.getElementById('btnFilter').value = filterValue;
   }
 
-  btnFilter
     document.getElementById('btnUpload').onclick = function(){
-      console.log("lala");
       uploadBlob(storage, currentTitle, [ecgArray, pulseArray, missingArray, falsePulseArray]);
   }
 
@@ -410,6 +427,7 @@ function processData(allRows) {
   //}
   //displayMedianBeat(medianBeatDistorted(medianBeatArray));
   displayMedianBeat(calculateMedianBeat());
+  //convolveSignals(rawECGArray, ecgArray)
 
 
 }
@@ -520,8 +538,11 @@ function returnCurrentECGFilter(){
   else if(filterValue=="Fourier"){
     return fourierFilter;
   }
-  if(filterValue=="DeltaFunction"){
+  else if(filterValue=="DeltaFunction"){
     return deltaSignal;
+  }
+  else if(filterValue=="PhilipsFilter"){
+    return philipsFilter;
   }
   else{
     return rawECGArray;
@@ -631,37 +652,49 @@ function calculateMedianBeat(beatNumber=5, index=0){
   }
   beatRange = Math.floor(calculateMedian(arrayOfDistances));
 
-  if(numberOfBeats<2){
-    numberOfBeats=2;
-  }
+  //if(numberOfBeats<2){
+  //  numberOfBeats=2;
+  //}
   if(numberOfBeats > beatIndexes.length){
     numberOfBeats = beatIndexes.length;
   }
-
+  numberOfBeats = beatIndexes.length;
   //kolla varje index, om det finns ett puls eller missing beat så ska det räknas
   //spara detta index i en array
   //skapa ny array med avståndet mellan varje index
   // räkna ut medianavståndet och spara i beatrange
+  newBeats = []
+  for (var i = 0; i < numberOfBeats-2; i++){
+    newBeats.push([])
+  }
 
   var pointValues = [];
-  for(var j=0; j < (beatRange *2) ; j++){
+  //for(var j=0; j < (beatRange *2) ; j++){
+  for(var j=0; j < 450 ; j++){
     pointValues = [];
-    for(var i=0; i < numberOfBeats; i++){
+    for(var i=1; i < numberOfBeats-2; i++){
       if ((beatIndexes[i]-beatRange) > 0 & (beatIndexes[i]+beatRange) < ecgArray.length){
-        var value = beatIndexes[i] - beatRange + j;
+        //var value = beatIndexes[i] - beatRange + j;
+        var value = beatIndexes[i] - 200 + j;
         var thisValue =returnCurrentECGFilter()[value+index];
 
         pointValues.push(thisValue);
+        newBeats[i].push(thisValue);
       }
     }
     var medianValue = calculateMedian(pointValues);
+    //var medianValue = math.mean(pointValues);
     medianBeatArray.push("" + medianValue);
+
   }
 
   //för varje beat, titta i range innan och efter, kolla att det finns plats fram och bak
   //spara varje index i en nested array index[i][värde]
   //skapa ny array medianBeat där varje värde är medianvärdet av värdena för index
-
+  newBeats.push(Float32Array.from(medianBeatArray))
+  newBeats.shift()
+  console.log(newBeats)
+  //uploadBlob(storage, "/Medianbeats" + currentTitle, [newBeats])
   return medianBeatArray;
 }
 
@@ -705,12 +738,12 @@ function smoothe(array, smoothening){
 
 
 function flipECG(beatNumber=10){
-  beatIndexes = [];
-  pulseValues = [];
+  var beatIndexes = [];
+  var pulseValues = [];
   var numberOfBeats = beatNumber;
-  beatRange = 10;
+  var beatRange = 15;
 
-  signalArray = standardize(returnCurrentECGFilter());
+  var signalArray = standardize(returnCurrentECGFilter());
   for(var i=0; i < pulseArray.length; i++){
     if(pulseArray[i] > 0 | missingArray[i] > 0){
       beatIndexes.push(i);
@@ -751,12 +784,12 @@ function flipECG(beatNumber=10){
 
 function frequencyPlot(signal){
   console.log("FFT algorithms: ")
-  console.log(rawECGArray)
+  //console.log(rawECGArray)
   var paddedSignal = zeroPadding(signal)
-  console.log(rawECGArray)
+  //console.log(rawECGArray)
   var frequencies = fftTime(paddedSignal);
-  console.log("Freq"+frequencies)
-  console.log("Signal"+signal)
+  //console.log("Freq"+frequencies)
+  //console.log("Signal"+signal)
 
   //console.log("Reversed Frequencies"+mySignalReverser(signal))
   //console.log("Return signal"+fftTime(mySignalReverser(paddedSignal)))
@@ -781,6 +814,7 @@ function frequencyPlot(signal){
   console.log("InverseDFT Starts")
   var n = timeTaken();
   fourierFilter = fourierFiltering(frequencies)
+  fourierFilter = meanFilter(fourierFilter)
 
   //Cutting the end of the filtered fourierSignal
   var padding = fourierFilter.length-rawECGArray.length
@@ -792,9 +826,17 @@ function frequencyPlot(signal){
   var deltaTime = n2-n;
   console.log(deltaTime)
   var newFilter = myInversefft(frequencies);
-  console.log("Inverse FFT"+newFilter)
-  deltaSignal = fourierFiltering(deltaFrequencies)
-  console.log(rawECGArray)
+  //uncomment to allow deltaWave
+  //console.log("Inverse FFT"+newFilter)
+  //deltaSignal = fourierFiltering(deltaFrequencies)
+  //deltaSignal = philipFilter(deltaSignal)
+
+  //Använd nedanstående kod för att se hur en deltaSignal påverkas av ett filter, samt hur frekvenserna ser ut
+  //deltaSignal = (philipFilter(deltaSignal))
+  //deltaSignal = pontusBandPass(pontusBandPass(pontusBandPass(pontusBandPass(deltaSignal, targetFrequency = 25, targetBandWidth = 20))))
+  //fourierFiltering(fftTime(zeroPadding(deltaSignal)))
+  //fourierFiltering(deltaSignal)
+
 
 //  egenReversDFT(frequencies)
 }
@@ -822,8 +864,11 @@ function fourierFiltering(signal){
   }
   gaussFilter.shift()
 
-  var sigma = 250
-  var r = 1500
+  var correctedFs = length/400
+
+  var sigma = 30*correctedFs
+  //var r = 200
+  var r = Math.floor(200*correctedFs)
 
 
   for(var k = 0; k < length; k++){
@@ -837,16 +882,13 @@ function fourierFiltering(signal){
     }
 
   }
+  //for(var i = 0; i < 200; i++){
+  //  gaussFilter2[i] = 1
+  //  gaussFilter2[length-i] = 1
+  //}
   //console.log("Gauss filter")
   //console.log(gaussFilter2)
-  myPlot = document.getElementById('frequencies');
-  Plotly.purge(myPlot);
-  plotlyLayout.title = "Frequencies";
-  Plotly.newPlot(myPlot, [initializeData2(gaussFilter2, 0, gaussFilter2.length, "Frequencies")], plotlyLayout);
-  Plotly.relayout(myPlot, {
-    xaxis: {
-      range: [0, gaussFilter2.length]
-    }})
+
 
 
   //gauss(1:r+1) = exp(-(1:r+1).^ 2 / (2 * sigma ^ 2));  % +ve frequencies
@@ -855,27 +897,39 @@ function fourierFiltering(signal){
 
 
 
-  //for(var i = middle; i>lowPass; i--){
-  //  signal[i].re = 0
-  //  signal[length-i].re = 0
-  //  signal[i].im= 0*im1
-  //  signal[length-i].im= 0*im1
-  //}
-  //for(var i = 0; i<signal.length; i++){
-//    signal[i].re *= gaussFilter2[i]
-  //  signal[i].im *= gaussFilter2[i]
-  //}
-  for(var i = 0; i<signal.length; i++){
-    signal[i].re *= gaussFilter2[i]
-    signal[i].im *= gaussFilter2[i]
-  }
+  //signal = remove50hzNoise(signal, noiseBand=50, noiseWidth = 25)
+  //signal = remove50hzNoise(signal, noiseBand=100, noiseWidth = 15, noiseChange = 0.01, fs=400)
 
-  for(var i = 0; i<highPass; i++){
-    signal[i].re = 0
-    signal[length-i].re = 0
-    signal[i].im= 0*im1
-    signal[length-i].im= 0*im1
-  }
+  //signal = remove50hzNoise(signal, noiseBand=150, noiseWidth = 15, noiseChange = 0.01, fs=400)
+  //signal = remove50hzNoise(signal, noiseBand=190, noiseWidth = 5, noiseChange = 0.01, fs=400)
+  //signal = remove50hzNoise(signal, noiseBand=2, noiseWidth = 1, noiseChange = 0.01, fs=400)
+  //var firSignal = FIRfilter(40, 250, signal.length/2)
+//  console.log("fir"+firSignal)
+//  var flippedArray = Array.from(firSignal)
+//  firSignal = firSignal.concat(flippedArray.reverse())
+
+//  console.log("fir"+firSignal)
+  var nySignal = []
+
+
+
+  var magnitudes = calculateMagnitude(signal)
+
+  //magnitudes = convolveSignals(rawECGArray, ecgArray)
+  myPlot = document.getElementById('frequencies');
+  Plotly.purge(myPlot);
+  plotlyLayout.title = "Magnitudes";
+  Plotly.newPlot(myPlot, [initializeData2(magnitudes.slice(1, magnitudes.length/2), 0, magnitudes.length/2, "Frequencies")], plotlyLayout);
+  Plotly.relayout(myPlot, {
+    xaxis: {
+      range: [0, magnitudes.length/2]
+    }})
+
+//  for(var i = 0; i < signal.length;i++){
+  //  signal[i].re = signal[i].re * firSignal[i]
+//    signal[i].im = signal[i].im * firSignal[i]
+//  }
+
   return  egenReversDFT(signal)
 }
 
@@ -889,11 +943,184 @@ function deltaFunction(signalLength){
 }
 
 
+function stepFunction(signalLength){
+  var stepSignalTemp = []
+  for(var i = 0; i < signalLength/2; i++){
+    stepSignalTemp.push(0);
+  }
+  for(var i = signalLength/2; i < signalLength; i++){
+    stepSignalTemp.push(1);
+  }
+  return stepSignalTemp
+}
+
+
+function remove50hzNoise(signal, noiseBand=50, noiseWidth = 6, noiseChange = 0.01, fs=400){
+  var length = signal.length
+  var fc = fs/length
+  noiseBand = Math.floor(noiseBand / fc)
+  noiseWidth = Math.floor(noiseWidth/ fc)
+
+  for(var i = noiseBand-noiseWidth; i<noiseBand+noiseWidth; i++){
+    signal[i].re =signal[i].re * noiseChange
+    signal[length-i].re = signal[length-i].re* noiseChange
+    signal[i].im= signal[i].im* noiseChange
+    signal[length-i].im=signal[length-i].im* noiseChange
+
+    signal[i+noiseBand].re = signal[i+noiseBand].re* noiseChange
+    signal[length-(i+noiseBand)].re = signal[length-(i+noiseBand)].re* noiseChange
+    signal[i+noiseBand].im = signal[i+noiseBand].im* noiseChange
+    signal[length-(i+noiseBand)].im = signal[length-(i+noiseBand)].im* noiseChange
+  }
+  return signal
+}
 
 
 
+function convolveSignals(inputSignal, targetSignal){
+  var inputSignalArray = createArrayOfBeats(inputSignal)
+  var targetSignalArray = createArrayOfBeats(targetSignal)
+  var inputMagnitude = []
+  var targetMagnitude = []
+
+  var inputFrequencies = signalFrequencies(inputSignalArray)
+  var targetFrequencies = signalFrequencies(targetSignalArray)
+
+  for(var i=0; i < inputSignalArray.length;i++){
+    inputMagnitude.push(calculateMagnitude(inputFrequencies[i]))
+  }
+  for(var i=0; i < targetSignalArray.length;i++){
+    targetMagnitude.push(calculateMagnitude(targetFrequencies[i]))
+  }
+  var inputAvgMagnitude = avgMagnitude(inputMagnitude)
+  var targetAvgMagnitude = avgMagnitude(targetMagnitude)
+
+
+  var magnitudeDifference = []
+  for (var i = 0; i < targetAvgMagnitude.length; i++){
+    magnitudeDifference.push(targetAvgMagnitude[i]/inputAvgMagnitude[i])
+  }
+
+  //Take a pulse, get the phase and magnitude. Subtract avgMagnitude, redo to normal space and IFFT, then plot
+    var filteredPulse = []
+    var inputPhase = calculatePhase(inputFrequencies[7])
+    for (var i = 0; i < targetAvgMagnitude.length; i++){
+      filteredPulse.push(inputMagnitude[7][i]*magnitudeDifference[i])
+    }
+    var inverseMagnitude = inverseCalculateMagnitude(filteredPulse, inputPhase)
+    var reconstructedBeat = egenReversDFT(inverseMagnitude)
+    //Plot it
+    //myPlot = document.getElementById('frequencies');
+    //Plotly.purge(myPlot);
+    //plotlyLayout.title = "Reconstructed Beat";
+    //Plotly.newPlot(myPlot, [initializeData2(reconstructedBeat, 0, reconstructedBeat.length, "Frequencies")], plotlyLayout);
+    //Plotly.relayout(myPlot, {
+    //  xaxis: {
+    //    range: [0, reconstructedBeat.length]
+    //  }})
+
+  return magnitudeDifference
+}
+
+
+function signalFrequencies(signalArray){
+  var frequencyArray = []
+  var frequencies = []
+
+  for(var i = 0; i < signalArray.length; i++){
+    var paddedSignal = zeroPadding(signalArray[i])
+    frequencyArray.push(fftTime(paddedSignal))
+  }
+  return frequencyArray
+}
+
+
+//Här skapar vi avg magnituden för så som signalen bör se ut eller faktiskt ser ut
+function avgMagnitude(signalArray){
+  var avgMagnitude = Array(signalArray.length).fill(0)
+
+  for (var i =0;i< signalArray[0].length;i++){
+    var numberIterations = 1
+    var mean = 0
+    for(var j = 0; j < signalArray.length;j++){
+
+      //mean = mean*(numberIterations-(1/numberIterations)-1)+signalArray[j][i]*(1/numberIterations)
+      mean = (mean*numberIterations+signalArray[j][i])/(numberIterations+1)
+      numberIterations++
+    }
+    avgMagnitude[i] = mean
+  }
+  return avgMagnitude
+}
 
 // OLD FUNCTIONS TARGETTED FOR REMOVAL
+
+
+
+
+
+
+function createArrayOfBeats(signal){
+  var beatsArray = [];
+  var beatRange = 0;
+  var beatIndexes = [];
+  var arrayOfDistances = [];
+
+//search current pulseArray, if a point has a value >0 put it into beatIndexes
+  for(var i=0; i < pulseArray.length; i++){
+    if(pulseArray[i] > 0 | missingArray[i] > 0){
+      beatIndexes.push(i);
+    }
+  }
+
+  //Calculate the median distance between beats
+  for(var i=0; i<beatIndexes.length-2; i++){
+    arrayOfDistances.push(beatIndexes[i+1] - beatIndexes[i]);
+  }
+  beatRange = Math.floor(calculateMedian(arrayOfDistances));
+
+  //Create an array of beats
+  var pointValues = [];
+  //for each beat
+  for(var i=0; i < beatIndexes.length; i++){
+    pointValues = [];
+    //for each value in that beats range
+    for(var j=0; j < (beatRange *2) ; j++){
+      //if the window we are looking at is within the ecg array length
+      if ((beatIndexes[i]-beatRange) > 0 & (beatIndexes[i]+beatRange) < ecgArray.length){
+        var value = beatIndexes[i] - beatRange + j;
+        //push that point to the array of all the values for that beat
+        pointValues.push(signal[value]);
+      }
+    }
+    //push the beat into the array of beats
+    if(pointValues.length != 0){
+      beatsArray.push(pointValues)
+    }
+  }
+//  console.log("Beats array: ")
+//  console.log(beatsArray)
+  return beatsArray
+}
+
+//function rinseSignal(magnitudeDifference){
+//  var paddedSignal = zeroPadding(signalArray[i])
+//  var inputMagnitude = calculateMagnitude(fftTime(paddedSignal))
+//  var newMagnitude = []
+//  for(var i = 0; i < magnitudeDifference.length)
+//}
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 

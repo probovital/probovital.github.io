@@ -4,7 +4,6 @@
 //import * from ‘firebase’;
 
 
-
 var plotlyLayout = {
   title: 'ECG data',
 paper_bgcolor: 'rgba(0,0,0,0)',
@@ -269,6 +268,9 @@ console.log("Firebase Loaded");
     document.getElementById('btnUpload').onclick = function(){
       uploadBlob(storage, currentTitle, [ecgArray, pulseArray, missingArray, falsePulseArray]);
   }
+  document.getElementById('btnDownload').onclick = function(){
+    storage.refFromURL(currentStorage).getDownloadURL().then(function(url){window.open(url)});
+  }
 
     document.getElementById('btnMissingPulse').onclick = function(){
       document.getElementById('clickDialog').style.display = "none";
@@ -461,7 +463,7 @@ function createListItem(arrayOfItems){
       //console.log(event.target.attributes.value.value);
       //console.log(event.target.innerText);
       //console.log(listItems);
-      url2 = "https://cors-anywhere.herokuapp.com/" + (listItems[event.target.attributes.value.value])[1];
+      url2 = (listItems[event.target.attributes.value.value])[1];
       currentStorage = (listItems[event.target.attributes.value.value])[1];
       currentTitle = event.target.innerText;
       document.getElementById("titleText").innerHTML = currentTitle;

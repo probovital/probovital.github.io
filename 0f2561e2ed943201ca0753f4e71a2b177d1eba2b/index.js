@@ -7,8 +7,69 @@
 var plotlyLayout = {
     title: 'ECG data',
     paper_bgcolor: 'rgba(0,0,0,0)',
-    plot_bgcolor: 'rgba(0,0,0,0)'
+    plot_bgcolor: 'rgba(0,0,0,0)',
+    legend: { 'orientation': 'h' },
+    hoverinfo: 'none',
+    hovermode: 'x',
+    dragmode: 'pan',
+    margin: {
+        l: 50,
+        r: 50,
+        b: 0,
+        t: 0,
+        pad: 0
+    },
+    shapes: []
 }
+
+var plotlyLayoutMedian = {
+    title: 'ECG data',
+    paper_bgcolor: 'rgba(0,0,0,0)',
+    plot_bgcolor: 'rgba(0,0,0,0)',
+    legend: { 'orientation': 'h' },
+    hoverinfo: 'none',
+    hovermode: 'closest',
+    dragmode: 'pan',
+    margin: {
+        l: 50,
+        r: 50,
+        b: 0,
+        t: 0,
+        pad: 0
+    }
+}
+
+var plotlyLayoutOverview = {
+    paper_bgcolor: 'rgba(0,0,0,0)',
+    plot_bgcolor: 'rgba(0,0,0,0)',
+    xaxis: { 'visible': false, fixedrange: true },
+    yaxis: { 'visible': false, fixedrange: true },
+    title: { 'visible': false },
+    hovermode: false,
+    margin: {
+        l: 50,
+        r: 50,
+        b: 0,
+        t: 0,
+        pad: 0
+    }
+}
+
+var cursor1 = {
+    xid: 1,
+    type: 'line',
+    // x-reference is assigned to the x-values
+    xref: 'x',
+    // y-reference is assigned to the plot paper [0,1]
+    yref: 'paper',
+    x0: 0,
+    y0: 0,
+    x1: 0,
+    y1: 1,
+    fillcolor: '#d3d3d3',
+    opacity: 0.5,
+};
+
 const plotlyLayout2 = {
     title: 'ECG data',
     xaxis: {
@@ -68,89 +129,111 @@ var newBeats = []
 var medianBeat = []
 var storage = 0;
 var database = 0;
+var normalizedECGData = [];
+var currentXrangeLow = 0;
+var currentXrangeHigh = 3000;
 
 
 var selectedPoint = 0;
 var latestAction = [];
 
 //export default !firebase.apps.length ? firebase.initializeApp(config) : firebase.app();
-function initializeData2(data, startIndex, endIndex, name, pulse = false, color = gray, type = 'line') {
-    if (pulse) {
-        return makeTrace(normalize(data.slice(startIndex, endIndex), pulse), startIndex, endIndex, name, color, type);
-    }
-    else {
-        return makeTrace(normalize(data.slice(startIndex, endIndex), pulse), startIndex, endIndex, name, color, type);
-        //return makeTrace(standardize(data.slice(startIndex,endIndex), pulse), startIndex, endIndex, name, color, type);
-    }
+function initializeData(data, name, pulse = false, color = gray, type = 'line') {
+    return makeTrace(normalize(data, pulse), name, color, type);
 }
 
 function getEcgData(dataItem) {
     return ecgArray.slice(dataItem, dataItem + 10);
 }
-function makeTrace(data, startIndex, endIndex, name, color, type) {
-    return { x: range(startIndex, endIndex), y: data, name: name, type: type, line: { color: color, width: 3 } }
+function makeTrace(data, name, color, type) {
+    return { x: range(0, data.length), y: data, name: name, type: type, line: { color: color, width: 3 }, hoverinfo: 'none' }
 }
 
 
 function loadPlotlyTimeSeries(ecgData) {
-    //frequencyPlot(rawECGArray.slice(0, 4000));
     philipsFilter = meanFilter(rawECGArray, k = 8);
-
-    //philipsFilter = philipFilter(philipFilter(philipFilter(philipFilter(rawECGArray).reverse())).reverse());
-    //philipsFilter = pontusBandPass(pontusBandPass(pontusBandPass(pontusBandPass(rawECGArray))))
-
-    //philipsFilter = teagerKaiserEnergyOperator(standardize( philipFilter(meanFilter(rawECGArray))));
-
-    //philipsFilter = meanFilter(rawECGArray);
-    //frequencyPlot(rawECGArray.slice(0,3000));
-    //frequencyPlot(rawECGArray.slice(0,2048));
 
     currentIndex = 0;
     myPlot = document.getElementById('chartly_still');
 
     Plotly.purge(myPlot);
     plotlyLayout.title = currentTitle;
-    Plotly.newPlot(myPlot, [initializeData2(ecgData, 0, windowLength, "ECG data"),
-                            initializeData2(missingArray, 0, windowLength, "Missing pulse detection", pulse = true, color = 'orange'),
-                            initializeData2(falsePulseArray, 0, windowLength, "Incorrect pulse detection", pulse = true, color = 'red'),
-                            initializeData2(pulseArray, 0, windowLength, "Pulse detection", pulse = true, color = auriculaPrimaryColor)], plotlyLayout);
+    normalizedECGData = normalize(ecgData, pulse = false);
+    Plotly.newPlot(myPlot, [initializeData(ecgData, "ECG data"),
+                            initializeData(missingArray, "Missing pulse detection", pulse = true, color = 'orange'),
+                            initializeData(falsePulseArray, "Incorrect pulse detection", pulse = true, color = 'red'),
+        initializeData(pulseArray, "Pulse detection", pulse = true, color = auriculaPrimaryColor)], plotlyLayout, { displayModeBar: false });
 
-
+    var overviewPlot = document.getElementById('chartly_overview');
+    Plotly.newPlot(overviewPlot, [initializeData(ecgData, "ECG data")], plotlyLayoutOverview, { displayModeBar: false });
     myPlot.on('plotly_click', function (data) {
         dialog = document.getElementById('clickDialog');
         dialog.style.backgroundColor = "red";
         dialog.setAttribute("style", "width:400px");
 
         var pts = '';
-        for (var i = 0; i < data.points.length; i++) {
+        if (data.points.length > 0) {
+            pts = 'x = ' + data.points[0].x + '\ny = ' +
+                data.points[0].y.toPrecision(3) + '\n\n';
+            selectedPoint = data.points[0].x;
+        }
+        /*for (var i = 0; i < data.points.length; i++) {
             pts = 'x = ' + data.points[i].x + '\ny = ' +
                 data.points[i].y.toPrecision(3) + '\n\n';
             selectedPoint = data.points[i].x;
-        }
+        }*/
 
         var signal = calculateSignalToNoise(data.points[0].x).toPrecision(3);
         var signalText = "Signal to noise at this location: " + signal;
 
         text = document.getElementById('selectedPointsText');
         text.innerText = 'Closest point clicked:\n\n' + pts + signalText;
-        //alert('Closest point clicked:\n\n'+pts);
+        console.log(data);
     });
 
+    myPlot.on("plotly_hover", function (data) {
+        if (myPlot.layout.shapes.length === 0) {
+            myPlot.layout.shapes.push(cursor1);
+        }
+        var update = {
+            'shapes[0].x0': data.points[0].x,
+            'shapes[0].x1': data.points[0].x
+        };
+        Plotly.relayout(myPlot, update);
+    });
+
+    myPlot.on('plotly_relayout', function (eventData) {
+        if ('xaxis.range[0]' in eventData) {
+            currentXrangeLow = math.floor(eventData['xaxis.range[0]']);
+            currentXrangeHigh = math.floor(eventData['xaxis.range[1]']);
+            if (currentXrangeLow < 0) {
+                currentXrangeHigh = currentXrangeHigh - currentXrangeLow;
+                currentXrangeLow = 0;
+            }
+            plotlyUpdate(currentXrangeLow, currentXrangeHigh);
+        }
+    });
+
+    overviewPlot.on('plotly_click', function (data) {
+        console.log(data);
+    });
 }
 
 
 function plotlyUpdate(startTime, endTime) {
-    Plotly.react('chartly_still', [initializeData2(returnCurrentECGFilter(), startTime, endTime, "ECG data"),
-                                    initializeData2(missingArray, startTime, endTime, "Missing pulse detection", pulse = true, color = 'orange'),
-                                    initializeData2(falsePulseArray, startTime, endTime, "Incorrect pulse detection", pulse = true, color = 'red'),
-                                    initializeData2(pulseArray, startTime, endTime, "Pulse detection", pulse = true, color = auriculaPrimaryColor)], plotlyLayout);
+    /*Plotly.react('chartly_still', [initializeData(returnCurrentECGFilter(), "ECG data"),
+                                    initializeData(missingArray, "Missing pulse detection", pulse = true, color = 'orange'),
+                                    initializeData(falsePulseArray, "Incorrect pulse detection", pulse = true, color = 'red'),
+                                    initializeData(pulseArray, "Pulse detection", pulse = true, color = auriculaPrimaryColor)], plotlyLayout);*/
     Plotly.relayout('chartly_still', {
         xaxis: {
             range: [startTime, (endTime)]
+        }, 
+        yaxis: {
+            range: [0, math.max(normalizedECGData.slice(startTime,endTime))]
         }
     })
     calculateChartStats();
-
 }
 
 
@@ -159,23 +242,6 @@ function plotlyUpdate(startTime, endTime) {
 async function run() {
     deltaSignal = deltaFunction(windowLength);
     stepSignal = stepFunction(600);
-    //  console.log("Test array")
-    //  console.log(testArray)
-    //zeroPadding(testArray)
-    //  console.log("FFT of Test array")
-    //  console.log(egenDFT(testArray))
-    //var frequencies = egenDFT(testArray)
-    //egenReversDFT(frequencies)
-    //egenDFT(egenDFT(testArray),false)
-
-    //fftTime(testArray)
-    //var frequencies = myfft(testArray)
-    //  console.log("Frequencies")
-    //  console.log(frequencies)
-    //  console.log("Reversed Frequencies"+mySignalReverser(frequencies))
-    //  console.log("Return signal"+myInverseFFTer(myfft(mySignalReverser(frequencies))))
-    //  console.log(myInverseFFTer(myfft(mySignalReverser(frequencies))))
-
 
     //  var reverse = new RFFT(transform, 12)
     document.getElementById("test").style.display = "none";
@@ -429,7 +495,7 @@ function processData(allRows) {
         //  medianBeatArray.push(calculateMedianBeat(index=i))
         //}
         //displayMedianBeat(medianBeatDistorted(medianBeatArray));
-        displayMedianBeat(calculateMedianBeat());
+        //displayMedianBeat(calculateMedianBeat());
         //convolveSignals(rawECGArray, ecgArray)
 
 
@@ -718,7 +784,7 @@ function displayMedianBeat(array) {
     myPlot = document.getElementById('median');
     Plotly.purge(myPlot);
     plotlyLayout.title = "Median Beat";
-    Plotly.newPlot(myPlot, [initializeData2(array, 0, array.length, "Median Beat")], plotlyLayout);
+    Plotly.newPlot(myPlot, [initializeData(array, "Median Beat")], plotlyLayoutMedian);
     Plotly.relayout(myPlot, {
         xaxis: {
             range: [0, array.length]
@@ -807,7 +873,7 @@ function frequencyPlot(signal) {
     myPlot = document.getElementById('frequencies');
     Plotly.purge(myPlot);
     plotlyLayout.title = "Frequencies";
-    Plotly.newPlot(myPlot, [initializeData2(reals, 0, reals.length, "Frequencies")], plotlyLayout);
+    Plotly.newPlot(myPlot, [initializeData(reals, "Frequencies")], plotlyLayout);
     Plotly.relayout(myPlot, {
         xaxis: {
             range: [0, reals.length]
@@ -924,7 +990,7 @@ function fourierFiltering(signal) {
     myPlot = document.getElementById('frequencies');
     Plotly.purge(myPlot);
     plotlyLayout.title = "Magnitudes";
-    Plotly.newPlot(myPlot, [initializeData2(magnitudes.slice(1, magnitudes.length / 2), 0, magnitudes.length / 2, "Frequencies")], plotlyLayout);
+    Plotly.newPlot(myPlot, [initializeData(magnitudes.slice(1, magnitudes.length / 2), "Frequencies")], plotlyLayout);
     Plotly.relayout(myPlot, {
         xaxis: {
             range: [0, magnitudes.length / 2]

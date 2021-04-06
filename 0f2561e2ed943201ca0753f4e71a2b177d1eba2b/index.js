@@ -21,7 +21,7 @@ var plotlyLayout = {
     margin: {
         l: 50,
         r: 50,
-        b: 0,
+        b: 20,
         t: 0,
         pad: 0
     },
@@ -124,18 +124,15 @@ var currentXrangeHigh = 3000;
 var selectedPoint = 0;
 var latestAction = [];
 
-//export default !firebase.apps.length ? firebase.initializeApp(config) : firebase.app();
-function initializeData(data, name, pulse = false, color = gray, type = 'line') {
-    return makeTrace(normalize(data, pulse), name, color, type);
-}
-
 function getEcgData(dataItem) {
     return ecgArray.slice(dataItem, dataItem + 10);
 }
-function makeTrace(data, name, color = gray, type = 'line') {
-    return { x: range(0, data.length), y: data, name: name, type: type, line: { color: color, width: 3 }, hoverinfo: 'none' }
+function makeTrace(data, start, end, name, pulse = false, color = gray, type = 'line') {
+    plotData = normalize(data, start, end, pulse);
+    var plotStart = math.max(0, start - 1.1 * windowLength);
+    var plotEnd = end + 1.1 * windowLength;
+    return { x: range(plotStart, plotEnd), y: plotData.slice(plotStart, plotEnd), name: name, type: type, line: { color: color, width: 3 }, hoverinfo: 'none' }
 }
-
 
 function loadPlotlyTimeSeries(ecgData) {
     philipsFilter = meanFilter(rawECGArray, k = 8);
@@ -145,14 +142,10 @@ function loadPlotlyTimeSeries(ecgData) {
 
     Plotly.purge(myPlot);
     plotlyLayout.title = currentTitle;
-    normalizedECGData = normalize(ecgData, 0, windowLength, pulse = false);
-    normalizedMissingArray = normalize(missingArray, 0, pulseArray.length, pulse = true);
-    normalizedFalsePulseArray = normalize(falsePulseArray, 0, pulseArray.length, pulse = true);
-    normalizedPulseArray = normalize(pulseArray, 0, pulseArray.length, pulse = true);
-    Plotly.newPlot(myPlot, [makeTrace(normalizedECGData, "ECG data"),
-    makeTrace(normalizedMissingArray, "Missing pulse detection", color = 'orange'),
-    makeTrace(normalizedFalsePulseArray, "Incorrect pulse detection", color = 'red'),
-    makeTrace(normalizedPulseArray, "Pulse detection", color = auriculaPrimaryColor)], plotlyLayout, { displayModeBar: false });
+    Plotly.newPlot(myPlot, [makeTrace(ecgData, 0, windowLength, "ECG data"),
+                            makeTrace(missingArray, 0, windowLength, "Missing pulse detection", pulse = true, color = 'orange'),
+                            makeTrace(falsePulseArray, 0, windowLength, "Incorrect pulse detection", pulse = true, color = 'red'),
+                            makeTrace(pulseArray, 0, windowLength, "Pulse detection", pulse = true, color = auriculaPrimaryColor)], plotlyLayout, { displayModeBar: false });
 
     myPlot.on('plotly_click', function (data) {
         dialog = document.getElementById('clickDialog');
@@ -194,11 +187,12 @@ function loadPlotlyTimeSeries(ecgData) {
                 currentXrangeLow = 0;
             }
             plotlyUpdate(currentXrangeLow, currentXrangeHigh);
+            currentIndex = currentXrangeLow;
         }
     });
 
     overviewPlot = document.getElementById('chartly_overview');
-    Plotly.newPlot(overviewPlot, [makeTrace(ecgData, "ECG data")], plotlyLayoutOverview, { displayModeBar: false });
+    Plotly.newPlot(overviewPlot, [makeTrace(ecgData, 0, ecgData.length, "ECG data")], plotlyLayoutOverview, { displayModeBar: false });
     overviewPlot.on('plotly_click', function (data) {
         console.log(data);
     });
@@ -206,10 +200,10 @@ function loadPlotlyTimeSeries(ecgData) {
 
 
 function plotlyUpdate(startTime, endTime) {
-    Plotly.react('chartly_still', [makeTrace(normalize(ecgArray, startTime, endTime, pulse = false), "ECG data"),
-    makeTrace(normalize(missingArray, startTime, endTime, pulse = true), "Missing pulse detection", color = 'orange'),
-    makeTrace(normalize(falsePulseArray, startTime, endTime, pulse = true), "Incorrect pulse detection", color = 'red'),
-    makeTrace(normalize(pulseArray, startTime, endTime, pulse = true), "Pulse detection", color = auriculaPrimaryColor)], plotlyLayout);
+    Plotly.react('chartly_still', [makeTrace(ecgArray, startTime, endTime, "ECG data", pulse = false),
+                                    makeTrace(missingArray, startTime, endTime, "Missing pulse detection", pulse = true, color = 'orange'),
+                                    makeTrace(falsePulseArray, startTime, endTime, "Incorrect pulse detection", pulse = true, color = 'red'),
+                                    makeTrace(pulseArray, startTime, endTime, "Pulse detection", pulse = true, color = auriculaPrimaryColor)], plotlyLayout);
     Plotly.relayout('chartly_still', {
         xaxis: {
             range: [startTime, (endTime)],
@@ -351,41 +345,6 @@ function processData(allRows) {
     }
 }
 
-
-function createListItem(arrayOfItems) {
-    document.getElementById("recordsList").innerHTML = "";
-    console.log("Creating List items");
-    var ul = document.querySelector("ul");
-
-
-    for (i = 0; i < arrayOfItems.length; i++) {
-
-        var li = document.createElement("a");
-        li.className = "list-group-item list-group-item-action";
-        li.setAttribute("id", "list_field_" + i);
-        li.setAttribute("value", i);
-        li.setAttribute('href', "#");
-        li.innerText = (arrayOfItems[i])[0];
-
-        ul.appendChild(li);
-        document.getElementById('list_field_' + i).onclick = function (event) {
-
-            //console.log(event);
-            //console.log(event.target);
-            //console.log(event.target.attributes.value.value);
-            //console.log(event.target.innerText);
-            //console.log(listItems);
-            url2 = (listItems[event.target.attributes.value.value])[1];
-            currentStorage = (listItems[event.target.attributes.value.value])[1];
-            currentTitle = event.target.innerText;
-            document.getElementById("titleText").innerHTML = currentTitle;
-            makeplot(url2);
-            console.log(url2);
-        }
-    }
-    console.log("Done creating List items");
-}
-
 //Returns a range of values
 function range(start, stop, step) {
     if (typeof stop == 'undefined') {
@@ -428,25 +387,6 @@ function calculateMean(numbers) {
     return total / numbers.length;
 }
 
-function calculateMedian(values) {
-    if (values.length === 0) return 0;
-    values.sort(function (a, b) {
-        return a - b;
-    });
-    var half = Math.floor(values.length / 2);
-    if (values.length % 2) {
-        return values[half];
-    }
-    return (values[half - 1] + values[half]) / 2.0;
-}
-
-function calculateStandardDeviation(numbers) {
-    var length = numbers.length;
-    var mean = calculateMean(numbers);
-    return Math.sqrt(numbers.map(x => Math.pow(x - mean, 2)).reduce((a, b) => a + b) / length);
-}
-
-
 function normalize(array, start, end, pulse = false) {
     var parsedArray = parseToFloat(array);
 
@@ -463,18 +403,6 @@ function normalize(array, start, end, pulse = false) {
     }
     return normalizedArray;
 }
-function standardize(array) {
-    parsedArray = parseToFloat(array);
-    var mean = calculateMean(parsedArray)
-    var standardDeviation = calculateStandardDeviation(parsedArray);
-    standardizedArray = [];
-    for (var i = 0; i < parsedArray.length; i++) {
-        standardizedArray.push(((parsedArray[i] - mean) / (standardDeviation)));
-    }
-    return standardizedArray;
-}
-
-
 
 function calculateSignalToNoise(pointInTime) {
     var noiseLocation = pointInTime - 140

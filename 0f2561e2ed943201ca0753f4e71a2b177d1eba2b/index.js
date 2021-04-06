@@ -261,8 +261,19 @@ async function run() {
     }
 
     document.getElementById('btnUpdateWindowSize').onclick = function () {
-        storage.refFromURL(currentStorage).getDownloadURL().then(function (url) { window.open(url) });
+        var textWindowSize = document.getElementById('textWindowSize');
+        var windowSize = parseInt(textWindowSize.value);
+        windowLength = windowSize;
+        plotlyUpdate(currentIndex, currentIndex + windowSize);
+        textWindowSize.placeholder = windowSize;
+        textWindowSize.value = "";
     }
+
+    document.getElementById('textWindowSize').addEventListener('keyup', function (event) {
+        if (event.keyCode === 13) {
+            document.getElementById('btnUpdateWindowSize').click();
+        }
+    });
 
     document.getElementById('btnMissingPulse').onclick = function () {
         document.getElementById('clickDialog').style.display = "none";

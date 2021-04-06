@@ -40,7 +40,8 @@ var plotlyLayoutOverview = {
         b: 0,
         t: 0,
         pad: 0
-    }
+    },
+    shapes: []
 }
 
 var cursor1 = {
@@ -58,21 +59,18 @@ var cursor1 = {
     opacity: 0.5,
 };
 
-const plotlyLayout2 = {
-    title: 'ECG data',
-    xaxis: {
-        showgrid: false,
-        showline: false,
-        visible: false,
-        range: [0, (3000)]
-    },
-    yaxis: {
-        showgrid: false,
-        showline: false,
-        visible: false
-    },
-    paper_bgcolor: 'rgba(0,0,0,0)',
-    plot_bgcolor: 'rgba(0,0,0,0)'
+var viewSquare = {
+    xid: 2,
+    type: 'square',
+    xref: 'x',
+    yref: 'y',
+    x0: 0,
+    y0: 0,
+    x1: windowLength,
+    y1: 1,
+    opacity: 0.2,
+    fillcolor: 'blue',
+    linecolor: 'blue'
 }
 
 const auriculaPrimaryColor = "#082B3E"
@@ -118,8 +116,10 @@ var storage = 0;
 var database = 0;
 var normalizedECGData = [];
 var currentXrangeLow = 0;
-var currentXrangeHigh = 3000;
+var currentXrangeHigh = windowLength;
 
+var mainPlot;
+var overviewPlot;
 
 var selectedPoint = 0;
 var latestAction = [];
@@ -138,16 +138,16 @@ function loadPlotlyTimeSeries(ecgData) {
     philipsFilter = meanFilter(rawECGArray, k = 8);
 
     currentIndex = 0;
-    myPlot = document.getElementById('chartly_still');
+    mainPlot = document.getElementById('chartly_still');
 
-    Plotly.purge(myPlot);
+    Plotly.purge(mainPlot);
     plotlyLayout.title = currentTitle;
-    Plotly.newPlot(myPlot, [makeTrace(ecgData, 0, windowLength, "ECG data"),
+    Plotly.newPlot(mainPlot, [makeTrace(ecgData, 0, windowLength, "ECG data"),
                             makeTrace(missingArray, 0, windowLength, "Missing pulse detection", pulse = true, color = 'orange'),
                             makeTrace(falsePulseArray, 0, windowLength, "Incorrect pulse detection", pulse = true, color = 'red'),
                             makeTrace(pulseArray, 0, windowLength, "Pulse detection", pulse = true, color = auriculaPrimaryColor)], plotlyLayout, { displayModeBar: false });
 
-    myPlot.on('plotly_click', function (data) {
+    mainPlot.on('plotly_click', function (data) {
         dialog = document.getElementById('clickDialog');
         dialog.style.backgroundColor = "red";
         dialog.setAttribute("style", "width:400px");
@@ -167,18 +167,18 @@ function loadPlotlyTimeSeries(ecgData) {
         console.log(data);
     });
 
-    myPlot.on("plotly_hover", function (data) {
-        if (myPlot.layout.shapes.length === 0) {
-            myPlot.layout.shapes.push(cursor1);
+    mainPlot.on("plotly_hover", function (data) {
+        if (mainPlot.layout.shapes.length === 0) {
+            mainPlot.layout.shapes.push(cursor1);
         }
         var update = {
             'shapes[0].x0': data.points[0].x,
             'shapes[0].x1': data.points[0].x
         };
-        Plotly.relayout(myPlot, update);
+        Plotly.relayout(mainPlot, update);
     });
 
-    myPlot.on('plotly_relayout', function (eventData) {
+    mainPlot.on('plotly_relayout', function (eventData) {
         if ('xaxis.range[0]' in eventData) {
             currentXrangeLow = math.floor(eventData['xaxis.range[0]']);
             currentXrangeHigh = math.floor(eventData['xaxis.range[1]']);
@@ -196,15 +196,20 @@ function loadPlotlyTimeSeries(ecgData) {
     overviewPlot.on('plotly_click', function (data) {
         console.log(data);
     });
+    overviewPlot.layout.shapes.push(viewSquare);
+    Plotly.relayout(overviewPlot, {
+        'shapes[0].x0': 0,
+        'shapes[0].x1': windowLength
+    });
 }
 
 
 function plotlyUpdate(startTime, endTime) {
-    Plotly.react('chartly_still', [makeTrace(ecgArray, startTime, endTime, "ECG data", pulse = false),
+    Plotly.react(mainPlot, [makeTrace(ecgArray, startTime, endTime, "ECG data", pulse = false),
                                     makeTrace(missingArray, startTime, endTime, "Missing pulse detection", pulse = true, color = 'orange'),
                                     makeTrace(falsePulseArray, startTime, endTime, "Incorrect pulse detection", pulse = true, color = 'red'),
                                     makeTrace(pulseArray, startTime, endTime, "Pulse detection", pulse = true, color = auriculaPrimaryColor)], plotlyLayout);
-    Plotly.relayout('chartly_still', {
+    Plotly.relayout(mainPlot, {
         xaxis: {
             range: [startTime, (endTime)],
             zeroline: false
@@ -215,6 +220,10 @@ function plotlyUpdate(startTime, endTime) {
         }
     })
     calculateChartStats();
+    Plotly.relayout(overviewPlot, {
+        'shapes[0].x0': startTime,
+        'shapes[0].x1': endTime
+    })
 }
 
 
@@ -345,7 +354,7 @@ function processData(allRows) {
             }
         }
         loadPlotlyTimeSeries(ecgArray);
-        plotlyUpdate(0, 3000);
+        plotlyUpdate(0, windowLength);
         calculateChartStats();
 
 

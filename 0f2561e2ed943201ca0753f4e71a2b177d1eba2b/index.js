@@ -5,13 +5,12 @@
 
 
 var plotlyLayout = {
-    title: 'ECG data',
     paper_bgcolor: 'rgba(0,0,0,0)',
     plot_bgcolor: 'rgba(0,0,0,0)',
     legend: {
         orientation: 'h',
-        yanchor: 'top',
-        y: 1,
+        yanchor: 'bottom',
+        y: 0.99,
         xanchor: 'left',
         x: 0
     },
@@ -86,20 +85,13 @@ var end = 2000;
 var list_index = 0;
 var urls = [];
 var listItems = [];
-var currentTitle = "MedDev data D2:48:9E:6B:201027:11:22:25EKGdata.csv";
-//var currentTitle = "20-10-28:20:22.csv"
 var currentStorage = 'gs://ecg-device.appspot.com/firestore/Philip filter160 ia50 pga8 20-12-10:11:28.csv';
-//var currentStorage = 'gs://ecg-device.appspot.com/firestore/20-10-28:20:22.csv';
 var evaluateStorageSelected = false;
 var baseStorageRef = 'firestore';
 var evaluateStorageRef = 'evaluated';
 var delimiter = ";";
 var rawECGArray = [];
 var ecgArray = [];
-var deltaSignal = [];
-var stepSignal = [];
-var fourierFilter = [];
-var philipsFilter = [];
 var pulseArray = [];
 var missingArray = [];
 var falsePulseArray = [];
@@ -108,15 +100,11 @@ var currentIndex = 0;
 var windowLength = 3000;
 var storageRef;
 var signalToNoise = 0;
-var lowPass = 500
-var highPass = 100
 var newBeats = []
 var medianBeat = []
 var storage = 0;
 var database = 0;
 var normalizedECGData = [];
-var currentXrangeLow = 0;
-var currentXrangeHigh = windowLength;
 
 var mainPlot;
 var overviewPlot;
@@ -141,7 +129,6 @@ function loadPlotlyTimeSeries(ecgData) {
     mainPlot = document.getElementById('chartly_still');
 
     Plotly.purge(mainPlot);
-    plotlyLayout.title = currentTitle;
     Plotly.newPlot(mainPlot, [makeTrace(ecgData, 0, windowLength, "ECG data"),
                             makeTrace(missingArray, 0, windowLength, "Missing pulse detection", pulse = true, color = 'orange'),
                             makeTrace(falsePulseArray, 0, windowLength, "Incorrect pulse detection", pulse = true, color = 'red'),
@@ -180,8 +167,8 @@ function loadPlotlyTimeSeries(ecgData) {
 
     mainPlot.on('plotly_relayout', function (eventData) {
         if ('xaxis.range[0]' in eventData) {
-            currentXrangeLow = math.floor(eventData['xaxis.range[0]']);
-            currentXrangeHigh = math.floor(eventData['xaxis.range[1]']);
+            var currentXrangeLow = math.floor(eventData['xaxis.range[0]']);
+            var currentXrangeHigh = math.floor(eventData['xaxis.range[1]']);
             if (currentXrangeLow < 0) {
                 currentXrangeHigh = currentXrangeHigh - currentXrangeLow;
                 currentXrangeLow = 0;
@@ -194,7 +181,8 @@ function loadPlotlyTimeSeries(ecgData) {
     overviewPlot = document.getElementById('chartly_overview');
     Plotly.newPlot(overviewPlot, [makeTrace(ecgData, 0, ecgData.length, "ECG data")], plotlyLayoutOverview, { displayModeBar: false });
     overviewPlot.on('plotly_click', function (data) {
-        console.log(data);
+        var windowStart = data.points[0].x - windowLength / 2;
+        plotlyUpdate(windowStart, windowStart + windowLength);
     });
     overviewPlot.layout.shapes.push(viewSquare);
     Plotly.relayout(overviewPlot, {
@@ -231,7 +219,6 @@ function plotlyUpdate(startTime, endTime) {
 
 async function run() {
     document.getElementById("test").style.display = "none";
-    document.getElementById("titleText").innerHTML = currentTitle;
 
     firebase.initializeApp(firebaseConfig);
 

@@ -262,10 +262,11 @@ function plotlyUpdate(startTime, endTime) {
 
 
 async function run() {
-    document.getElementById("test").style.display = "none";
-    calendarCreate();
+    createCalendar();
+    var date = new Date();
+    updateCalendar(date.getFullYear(), date.getMonth());
 
-    firebase.initializeApp(firebaseConfig);
+    /*firebase.initializeApp(firebaseConfig);
 
 
     console.log("Loading Firebase");
@@ -331,7 +332,7 @@ async function run() {
     }
     document.getElementById('popupCancel').onclick = function () {
         document.getElementById('clickDialog').style.display = "none";
-    }
+    }*/
 }
 
 //Här lägger vi in att run ska köras när dokumentet är laddat.
@@ -491,19 +492,72 @@ function calculateChartStats() {
 
 }
 
-function calendarCreate() {
+function createCalendar() {
     var div = document.getElementById('calendarDiv');
     var tbl = document.createElement('table');
     tbl.className = "calendar";
 
-    for (i = 0; i < 5; i++) {
+    for (i = 0; i < 6; i++) {
         var tr = document.createElement('tr');
         for (j = 0; j < 7; j++) {
             var td = document.createElement('td');
-            td.appendChild(document.createTextNode("" + (i * 7 + j + 1)));
+            td.id = 'r'+i+'c'+j;
             tr.appendChild(td);
         }
         tbl.appendChild(tr);
     }
     div.appendChild(tbl);
+}
+
+function updateCalendar(year, month) {
+    var day = (new Date(year, month, 1)).getDay() - 1;
+    if (day < 0) day += 7;
+    var days = 0;
+    switch (month) {
+        case 0:
+            days = 31;
+            break;
+        case 1:
+            days = new Date(year, month + 1, 0).getDate();
+            break;
+        case 2:
+            days = 31;
+            break;
+        case 3:
+            days = 30;
+            break;
+        case 4:
+            days = 31;
+            break;
+        case 5:
+            days = 30;
+            break;
+        case 6:
+            days = 31;
+            break;
+        case 7:
+            days = 31;
+            break;
+        case 8:
+            days = 30;
+            break;
+        case 9:
+            days = 31;
+            break;
+        case 10:
+            days = 30;
+            break;
+        case 11:
+            days = 31;
+            break;
+        default:
+            break;
+    }
+    for (i = 0; i < days; i++) {
+        var row = math.floor((day + i) / 7);
+        var column = (day + i) % 7;
+        var id = 'r' + row + 'c' + column;
+        var td = document.getElementById(id);
+        td.appendChild(document.createTextNode(i + 1));
+    }
 }

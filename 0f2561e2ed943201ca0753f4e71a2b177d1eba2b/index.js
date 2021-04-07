@@ -33,6 +33,7 @@ var plotlyLayoutOverview = {
     xaxis: { 'visible': false, fixedrange: true },
     yaxis: { 'visible': false, fixedrange: true },
     title: { 'visible': false },
+    showlegend: false,
     margin: {
         l: 50,
         r: 50,
@@ -43,6 +44,7 @@ var plotlyLayoutOverview = {
     shapes: []
 }
 
+var cursorAdded = false;
 var cursor1 = {
     xid: 1,
     type: 'line',
@@ -95,6 +97,8 @@ var ecgArray = [];
 var pulseArray = [];
 var missingArray = [];
 var falsePulseArray = [];
+var afArray = [];
+var processedAFArray = [];
 var ecgLoaded = false;
 var currentIndex = 0;
 var windowLength = 3000;
@@ -123,7 +127,6 @@ function makeTrace(data, start, end, name, pulse = false, color = gray, type = '
 }
 
 function loadPlotlyTimeSeries(ecgData) {
-    philipsFilter = meanFilter(rawECGArray, k = 8);
 
     currentIndex = 0;
     mainPlot = document.getElementById('chartly_still');
@@ -154,10 +157,8 @@ function loadPlotlyTimeSeries(ecgData) {
         console.log(data);
     });
 
+    mainPlot.layout.shapes.push(cursor1);
     mainPlot.on("plotly_hover", function (data) {
-        if (mainPlot.layout.shapes.length === 0) {
-            mainPlot.layout.shapes.push(cursor1);
-        }
         var update = {
             'shapes[0].x0': data.points[0].x,
             'shapes[0].x1': data.points[0].x
@@ -185,10 +186,54 @@ function loadPlotlyTimeSeries(ecgData) {
         plotlyUpdate(windowStart, windowStart + windowLength);
     });
     overviewPlot.layout.shapes.push(viewSquare);
-    Plotly.relayout(overviewPlot, {
-        'shapes[0].x0': 0,
-        'shapes[0].x1': windowLength
-    });
+    overviewPlot.layout.shapes[0].x0 = 0;
+    overviewPlot.layout.shapes[0].x1 = windowLength;
+    var boxNum = 0;
+    var afState = false;
+    var start = 0;
+    for (i = 0; i < afArray.length; i++) {
+        afValue = afArray[i].replace(',','.');
+        if (!afState && afValue < 0) {
+            afState = true;
+            start = i;
+        } else if (afState && afValue > 0) {
+            afState = false;
+            overviewPlot.layout.shapes.push({
+                xid: 3 + boxNum,
+                type: 'square',
+                xref: 'x',
+                yref: 'y',
+                x0: start,
+                y0: 0,
+                x1: i,
+                y1: 1,
+                opacity: 0.2,
+                fillcolor: 'red',
+                line: {
+                    width: 0,
+                    color: 'red'
+                }
+            });
+            mainPlot.layout.shapes.push({
+                xid: 3 + boxNum,
+                type: 'square',
+                xref: 'x',
+                yref: 'y',
+                x0: start,
+                y0: 0,
+                x1: i,
+                y1: 1.1,
+                opacity: 0.2,
+                fillcolor: 'red',
+                line: {
+                    width: 0,
+                    color: 'red'
+                }
+            });
+            boxNum++;
+        }
+    }
+    Plotly.relayout(overviewPlot, overviewPlot.layout);
 }
 
 
@@ -208,10 +253,9 @@ function plotlyUpdate(startTime, endTime) {
         }
     })
     calculateChartStats();
-    Plotly.relayout(overviewPlot, {
-        'shapes[0].x0': startTime,
-        'shapes[0].x1': endTime
-    })
+    overviewPlot.layout.shapes[0].x0 = startTime;
+    overviewPlot.layout.shapes[0].x1 = endTime;
+    Plotly.relayout(overviewPlot, overviewPlot.layout);
 }
 
 
@@ -293,10 +337,10 @@ async function run() {
 document.addEventListener('DOMContentLoaded', run);
 
 function makeplot(url) {
-    //Plotly.d3.csv("https://raw.githubusercontent.com/plotly/datasets/master/2014_apple_stock.csv", function(data){ processData(data) } );
     Plotly.d3.dsv(delimiter)(url, function (data) { processData(data) });
 };
 
+const arrayColumn = (arr, n) => arr.map(x => x[n]);
 
 function processData(allRows) {
     try {
@@ -304,46 +348,27 @@ function processData(allRows) {
         var x = [];
         var y = [];
         standard_deviation = [];
-        var columns = ['rawECG', 'ECG', 'PPGRED', 'PPGIR', 'Label', 'Missing', 'Incorrect'];
         var keys = Object.keys(allRows[0]);
 
-        for (j = 0; j < keys.length; j++) {
-            x = [], y = [], standard_deviation = [];
-            //document.getElementById('length').value = allRows.length;
-            end = allRows.length;
-            for (var i = start; i < end; i++) {
-                row = allRows[i];
-                //console.log(row[keys[j]]);
-                y.push(row[keys[j]]);
-            }
-            y = parseToFloat(y);
-            if (keys[j] == 'rawECG') {
-                rawECGArray = y;
-            }
-            if (keys[j] == 'ECG') {
-                ecgArray = y;
+        rawECGArray = arrayColumn(allRows, 'rawECG');
+        ecgArray = arrayColumn(allRows, 'ECG');
+        pulseArray = arrayColumn(allRows, 'Label');
+        afArray = arrayColumn(allRows, 'AFSum');
 
-            }
-            if (keys[j] == 'Label') {
-                pulseArray = y;
-                missingArray = [];
-                falsePulseArray = [];
-                for (i = 0; i < y.length; i++) {
-                    missingArray.push("0");
-                    falsePulseArray.push("0");
-                }
-            }
-            if (keys[j] == 'Missing') {
-                missingArray = y;
-            }
-            if (keys[j] == 'Incorrect') {
-                falsePulseArray = y;
-            }
+        if (keys.includes('Missing')) {
+            missingArray = arrayColumn(allRows, 'Missing');
+        } else {
+            missingArray = new Array(allRows.length);
         }
+        if (keys.includes('Incorrect')) {
+            falsePulseArray = arrayColumn(allRows, 'Incorrect');
+        } else {
+            falsePulseArray = new Array(allRows.length);
+        }
+
         loadPlotlyTimeSeries(ecgArray);
         plotlyUpdate(0, windowLength);
         calculateChartStats();
-
 
     }
     catch (TypeError) {

@@ -6,6 +6,7 @@
     <title>Auricula ECG</title>
     <script src="pace.js"></script>
     <link href="paceLoaderCorner.css" rel="stylesheet" />
+    <link rel="stylesheet" href="stylesheet.css" />
     <!--Bootstrap -->
 
     <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.0/css/bootstrap.min.css"
@@ -64,8 +65,8 @@
             </tr>
         </table>
     </div>
-    <!-- Chart-->
-    <div>
+    <!-- Data view-->
+    <div id="plotView" style="display:none">
         <div class="row">
             <div class="col-12" align="center">
                 <div id="chartly_still" style="height: 450px;"></div>
@@ -189,6 +190,9 @@
 
     </div>
 
+    <!-- Calendar view -->
+    <div id="calendarDiv" style="align:center">
+    </div>
 
 
     <!--Bootstrap -->

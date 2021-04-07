@@ -1,0 +1,17 @@
+﻿table.calendar td {
+    padding: 20px;
+    font-size: 40pt;
+    text-align: center;
+    background-color: lightgreen;
+    border-style: solid;
+    border-color: #1d1d1d;
+}
+
+table.calendar {
+    align: center;
+}
+
+#calendarDiv {
+    display: flex;
+    justify-content: center;
+}

@@ -263,6 +263,7 @@ function plotlyUpdate(startTime, endTime) {
 
 async function run() {
     document.getElementById("test").style.display = "none";
+    calendarCreate();
 
     firebase.initializeApp(firebaseConfig);
 
@@ -488,4 +489,21 @@ function calculateChartStats() {
         "Error Rate: " + errorRate + "\n\n" +
         "Signal to noise: " + signalToNoise + "\n\n";
 
+}
+
+function calendarCreate() {
+    var div = document.getElementById('calendarDiv');
+    var tbl = document.createElement('table');
+    tbl.className = "calendar";
+
+    for (i = 0; i < 5; i++) {
+        var tr = document.createElement('tr');
+        for (j = 0; j < 7; j++) {
+            var td = document.createElement('td');
+            td.appendChild(document.createTextNode("" + (i * 7 + j + 1)));
+            tr.appendChild(td);
+        }
+        tbl.appendChild(tr);
+    }
+    div.appendChild(tbl);
 }

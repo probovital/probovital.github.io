@@ -263,8 +263,6 @@ function plotlyUpdate(startTime, endTime) {
 
 async function run() {
     createCalendar();
-    var date = new Date();
-    updateCalendar(date.getFullYear(), date.getMonth());
 
     /*firebase.initializeApp(firebaseConfig);
 
@@ -492,13 +490,54 @@ function calculateChartStats() {
 
 }
 
+/* Calendar view */
+
+var currentMonth = new Date().getMonth();
+var currentYear = new Date().getFullYear();
+var monthNames = [ "January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December" ];
+
 function createCalendar() {
-    var div = document.getElementById('calendarDiv');
+    var div = document.getElementById('calendarTitleDiv');
+    var title = document.createElement('p');
+    title.id = 'calendarTitle';
+    div.appendChild(title);
+
+    div = document.getElementById('calendarDiv');
+    var prevArrow = document.createElement('p');
+    prevArrow.className = 'arrow';
+    prevArrow.id = 'prevArrow';
+    prevArrow.appendChild(document.createTextNode('<'));
+    prevArrow.addEventListener('click', loadPrevMonth);
+    div.appendChild(prevArrow);
     var tbl = document.createElement('table');
     tbl.className = "calendar";
+    var tr = document.createElement('tr');
+    var th = document.createElement('th');
+    th.innerHTML = 'Mon';
+    tr.appendChild(th);
+    th = document.createElement('th');
+    th.innerHTML = 'Tue';
+    tr.appendChild(th);
+    th = document.createElement('th');
+    th.innerHTML = 'Wed';
+    tr.appendChild(th);
+    th = document.createElement('th');
+    th.innerHTML = 'Thu';
+    tr.appendChild(th);
+    th = document.createElement('th');
+    th.innerHTML = 'Fri';
+    tr.appendChild(th);
+    th = document.createElement('th');
+    th.innerHTML = 'Sat';
+    tr.appendChild(th);
+    th = document.createElement('th');
+    th.innerHTML = 'Sun';
+    tr.appendChild(th);
+    tbl.appendChild(tr);
+    
 
     for (i = 0; i < 6; i++) {
-        var tr = document.createElement('tr');
+        tr = document.createElement('tr');
         for (j = 0; j < 7; j++) {
             var td = document.createElement('td');
             td.id = 'r'+i+'c'+j;
@@ -507,9 +546,22 @@ function createCalendar() {
         tbl.appendChild(tr);
     }
     div.appendChild(tbl);
+    var nextArrow = document.createElement('p');
+    nextArrow.className = 'arrow';
+    nextArrow.id = 'nextArrow';
+    nextArrow.appendChild(document.createTextNode('>'));
+    nextArrow.addEventListener('click', loadNextMonth);
+    div.appendChild(nextArrow);
+    updateCalendar(currentYear, currentMonth);
+}
+
+function updateCalendarTitle(year, month) {
+    var title = document.getElementById('calendarTitle')
+    title.innerHTML = monthNames[month] + " " + year;
 }
 
 function updateCalendar(year, month) {
+    updateCalendarTitle(year, month);
     var day = (new Date(year, month, 1)).getDay() - 1;
     if (day < 0) day += 7;
     var days = 0;
@@ -553,11 +605,52 @@ function updateCalendar(year, month) {
         default:
             break;
     }
+
+    var numFilled = 0;
+    var prevMonthDays = new Date(year, month, 0).getDate();
+    for (i = day; i > 0; i--) {
+        var id = 'r0c' + (day - i);
+        var td = document.getElementById(id);
+        td.setAttribute('style', 'background-color: lightgreen; opacity: 0.5');
+        td.innerHTML = (prevMonthDays - i + 1);
+        numFilled++;
+    }
+
+    var i = 0;
     for (i = 0; i < days; i++) {
         var row = math.floor((day + i) / 7);
         var column = (day + i) % 7;
         var id = 'r' + row + 'c' + column;
         var td = document.getElementById(id);
-        td.appendChild(document.createTextNode(i + 1));
+        td.setAttribute('style', 'background-color: lightgreen');
+        td.innerHTML = (i + 1);
+        numFilled++
     }
+
+    for (i = numFilled; i < 42; i++) {
+        var row = math.floor(i / 7);
+        var column = i % 7;
+        var id = 'r' + row + 'c' + column;
+        var td = document.getElementById(id);
+        td.setAttribute('style', 'background-color: lightgreen; opacity: 0.5');
+        td.innerHTML = (i - numFilled + 1);
+    }
+}
+
+function loadPrevMonth() {
+    currentMonth--;
+    if (currentMonth < 0) {
+        currentYear--;
+        currentMonth += 12;
+    }
+    updateCalendar(currentYear, currentMonth);
+}
+
+function loadNextMonth() {
+    currentMonth++;
+    if (currentMonth > 11) {
+        currentYear++;
+        currentMonth -= 12;
+    }
+    updateCalendar(currentYear, currentMonth);
 }

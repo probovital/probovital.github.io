@@ -52,21 +52,33 @@
     <script src="firebase.js"></script>
     <script src="oldIndexCode.js"></script>
     <script src="index.js"></script>
+    <script src="philipsFirebase.js"></script>
 
 </head>
 
 
 <body>
-    <div class="col-4">
-        <table>
-            <tr>
-                <th><img src="img/ic_launcher_foreground.png" /></th>
-                <th><p id="Title">Auricula</p></th>
-            </tr>
-        </table>
+    <div class="pageTop">
+        <img src="img/ic_launcher_foreground98.png" id="logo" />
+        <p id="title">ECG analyzer</p>
+        <div id="titleLoginButton"><p id="login">Log in</p></div>
     </div>
+
+    <!-- Start view -->
+    <div id="startViewDiv"></div>
+
+    <!-- Login view -->
+    <div id="loginViewDiv">
+        <form>
+            <input type="text" id="email" placeholder="Email" /><br />
+            <input type="password" id="password" placeholder="Password" /><br />
+            <p id="loginButton">Log in</p>
+            <p id="loginMessage"></p>
+        </form>
+    </div>
+
     <!-- Data view-->
-    <div id="plotView" style="display:none">
+    <div id="plotViewDiv" style="display:none">
         <div class="row">
             <div class="col-12" align="center">
                 <div id="chartly_still" style="height: 450px;"></div>
@@ -191,9 +203,10 @@
     </div>
 
     <!-- Calendar view -->
-    <div id="calendarTitleDiv"></div>
-    <div id="calendarDiv" style="align:center"></div>
-
+    <div id="calendarViewDiv" style="display: none">
+        <div id="calendarTitleDiv"></div>
+        <div id="calendarDiv" style="align:center"></div>
+    </div>
 
     <!--Bootstrap -->
     <script src="https://code.jquery.com/jquery-3.5.1.slim.min.js"

@@ -4,6 +4,83 @@
 //import * from ‘firebase’;
 
 
+async function run() {
+
+    initialize();
+    //createCalendar();
+}
+
+var startView;
+var loginView;
+var calendarView;
+var plotView;
+
+function initialize() {
+    initializeFirebase();
+    var titleLoginButton = document.getElementById("titleLoginButton");
+    titleLoginButton.addEventListener('click', showLoginView);
+
+    startView = document.getElementById("startViewDiv");
+    loginView = document.getElementById("loginViewDiv");
+    calendarView = document.getElementById("calendarViewDiv");
+    plotView = document.getElementById("plotViewDiv");
+
+    showLoginView();
+}
+
+function initializeFirebase() {
+    firebase.initializeApp(philipsFirebaseConfig);
+
+
+    console.log("Loading Firebase");
+    const firebaseApp = firebase;
+    // Get a reference to the storage service, which is used to create references in your storage bucket
+    storage = firebase.storage();
+    database = firebase.database();
+    storageRef = storage.ref(baseStorageRef);
+
+    //var gsReference = storage.refFromURL('gs://ecg-device.appspot.com/firestore/')
+    //const fileRef = await gsReference.listAll();
+
+    //var listRef = storageRef;
+
+    console.log("Firebase Loaded");
+}
+
+function hideAll() {
+    console.log("hide all");
+    startView.setAttribute('style', 'display: none');
+    loginView.setAttribute('style', 'display: none');
+    calendarView.setAttribute('style', 'display: none');
+    plotView.setAttribute('style', 'display: none');
+}
+
+/* Login view */
+function showLoginView() {
+    hideAll();
+    loginView.setAttribute('style', 'display: flex');
+    var loginButton = document.getElementById("loginButton");
+    loginButton.addEventListener('click', login);
+}
+
+function login() {
+    var email = document.getElementById("email").value;
+    var password = document.getElementById("password").value;
+    var loginMessage = document.getElementById("loginMessage");
+    firebase.auth().signInWithEmailAndPassword(email, password)
+        .then((userCredential) => {
+            showCalendarView();
+        })
+        .catch((error) => {
+            var errorCode = error.code;
+            var errorMessage = error.message;
+            loginMessage.innerHTML = "Error code: " + errorCode + "\nError message: " + errorMessage;
+            console.log(error);
+        });
+}
+
+
+/* Plot view */
 var plotlyLayout = {
     paper_bgcolor: 'rgba(0,0,0,0)',
     plot_bgcolor: 'rgba(0,0,0,0)',
@@ -261,25 +338,8 @@ function plotlyUpdate(startTime, endTime) {
 
 
 
-async function run() {
-    createCalendar();
-
-    /*firebase.initializeApp(firebaseConfig);
-
-
-    console.log("Loading Firebase");
-    const firebaseApp = firebase;
-    // Get a reference to the storage service, which is used to create references in your storage bucket
-    storage = firebase.storage();
-    database = firebase.database();
-    storageRef = storage.ref(baseStorageRef);
-
-    //var gsReference = storage.refFromURL('gs://ecg-device.appspot.com/firestore/')
-    //const fileRef = await gsReference.listAll();
-
-    //var listRef = storageRef;
-
-    console.log("Firebase Loaded");
+function createPlotView() {
+    /*
     getFromStorage(storage, "1");
 
     document.getElementById('btnNext').onclick = function () {
@@ -494,7 +554,14 @@ function calculateChartStats() {
 
 var currentMonth = new Date().getMonth();
 var currentYear = new Date().getFullYear();
-var monthNames = [ "January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December" ];
+var monthNames = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
+
+function showCalendarView() {
+    hideAll();
+    document.getElementById('calendarViewDiv').setAttribute('style', 'display: unset');
+    //createSearchFunction();
+    createCalendar();
+}
 
 function createCalendar() {
     var div = document.getElementById('calendarTitleDiv');

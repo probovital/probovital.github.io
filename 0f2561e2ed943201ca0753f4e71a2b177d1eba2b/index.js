@@ -10,34 +10,83 @@ async function run() {
     //createCalendar();
 }
 
+var GUI;
 var startView;
 var loginView;
 var calendarView;
 var plotView;
 
+var GUIInitialized = false;
+
 function initialize() {
     initializeFirebase();
-    var titleLoginButton = document.getElementById("titleLoginButton");
-    titleLoginButton.addEventListener('click', showLoginView);
+}
+
+function initializeGUI() {
+    GUI = document.getElementById("GUI");
+    GUI.setAttribute('style', 'display: unset');
 
     startView = document.getElementById("startViewDiv");
     loginView = document.getElementById("loginViewDiv");
-    calendarView = document.getElementById("calendarViewDiv");
     plotView = document.getElementById("plotViewDiv");
 
-    showLoginView();
+    /* Calendar view */
+    calendarView = document.getElementById("calendarViewDiv");
+    //createSearchFunction();
+    createCalendar();
+
+    var titleLoginButton = document.getElementById("titleLoginButton");
+    titleLoginButton.addEventListener('click', showLoginView);
+    if (firebase.auth().currentUser) {
+        titleLoginButton.innerHTML = "Log out";
+        showCalendarView();
+    } else {
+        showLoginView();
+    }
+
+    GUIInitialized = true;
 }
 
 function initializeFirebase() {
     firebase.initializeApp(philipsFirebaseConfig);
-
+    /*firebase.auth().signOut().then(() => {
+        console.log("Signed out");
+    }).catch((error) => {
+        console.log(error);
+    })*/
 
     console.log("Loading Firebase");
     const firebaseApp = firebase;
     // Get a reference to the storage service, which is used to create references in your storage bucket
     storage = firebase.storage();
-    database = firebase.database();
+    database = firebase.firestore();
     storageRef = storage.ref(baseStorageRef);
+
+    firebase.auth().onAuthStateChanged(user => {
+        if (user) {
+            console.log("state = definitely signed in");
+            if (!GUIInitialized) {
+                initializeGUI();
+            }
+        }
+        else {
+            console.log("state = definitely signed out");
+            if (!GUIInitialized) {
+                initializeGUI();
+            }
+        }
+    })
+    console.log(firebase.auth()["currentUser"]);
+
+    /*database.collection('Recordings').where("BTAddress", "==", "01:23:45:67:89").get().then((querySnapshot) => {
+        querySnapshot.forEach((doc) => {
+            console.log(`${doc.id} => ${doc.data().BTAddress}`);
+        });
+    }).catch((error) => {
+        console.log(error.message);
+    });*/
+    /*var record = new Recording("01:23:45:67:89", new Date(), "FileName");
+    database.collection('Recordings').withConverter(recordingConverter).add(record);*/
 
     //var gsReference = storage.refFromURL('gs://ecg-device.appspot.com/firestore/')
     //const fileRef = await gsReference.listAll();
@@ -47,6 +96,28 @@ function initializeFirebase() {
     console.log("Firebase Loaded");
 }
 
+class Recording {
+    constructor(BTAddress, CollDate, FileName) {
+        this.BTAddress = BTAddress;
+        this.CollDate = CollDate;
+        this.FileName = FileName;
+    }
+}
+
+var recordingConverter = {
+    toFirestore: function (recording) {
+        return {
+            BTAddress: recording.BTAddress,
+            CollDate: recording.CollDate,
+            FileName: recording.FileName
+        }
+    },
+    fromFirestore: function (snapshot, options) {
+        const data = snapshot.data(options);
+        return new Recording(data.BTAddress, data.CollDate, data.FileName);
+    }
+};
+
 function hideAll() {
     console.log("hide all");
     startView.setAttribute('style', 'display: none');
@@ -55,28 +126,54 @@ function hideAll() {
     plotView.setAttribute('style', 'display: none');
 }
 
+function showGUI() {
+
+}
+
 /* Login view */
 function showLoginView() {
+    if (firebase.auth().currentUser) {
+        firebase.auth().signOut().then(() => {
+            setupLoginFunction();
+        });
+    } else {
+        setupLoginFunction();
+    }
+}
+
+function setupLoginFunction() {
     hideAll();
     loginView.setAttribute('style', 'display: flex');
     var loginButton = document.getElementById("loginButton");
     loginButton.addEventListener('click', login);
+    var password = document.getElementById("password");
+    password.addEventListener("keyup", function (event) {
+        if (event.keyCode == 13) {
+            login();
+        }
+    });
 }
 
 function login() {
     var email = document.getElementById("email").value;
     var password = document.getElementById("password").value;
     var loginMessage = document.getElementById("loginMessage");
-    firebase.auth().signInWithEmailAndPassword(email, password)
-        .then((userCredential) => {
-            showCalendarView();
-        })
-        .catch((error) => {
-            var errorCode = error.code;
-            var errorMessage = error.message;
-            loginMessage.innerHTML = "Error code: " + errorCode + "\nError message: " + errorMessage;
-            console.log(error);
-        });
+    firebase.auth().setPersistence(firebase.auth.Auth.Persistence.SESSION).then(() => {
+        return firebase.auth().signInWithEmailAndPassword(email, password)
+            .then((userCredentials) => {
+                console.log();
+                showCalendarView();
+                console.log(userCredentials)
+            })
+            .catch((error) => {
+                var errorCode = error.code;
+                var errorMessage = error.message;
+                loginMessage.innerHTML = "Error code: " + errorCode + "\nError message: " + errorMessage;
+                console.log(error);
+            });
+    }).catch((error) => {
+        console.log(error);
+    });
 }
 
 
@@ -559,8 +656,7 @@ var monthNames = ["January", "February", "March", "April", "May", "June", "July"
 function showCalendarView() {
     hideAll();
     document.getElementById('calendarViewDiv').setAttribute('style', 'display: unset');
-    //createSearchFunction();
-    createCalendar();
+    updateCalendar(currentYear, currentMonth);
 }
 
 function createCalendar() {

@@ -15,6 +15,7 @@ var startView;
 var loginView;
 var calendarView;
 var plotView;
+var searchView;
 
 var GUIInitialized = false;
 
@@ -29,16 +30,30 @@ function initializeGUI() {
     startView = document.getElementById("startViewDiv");
     loginView = document.getElementById("loginViewDiv");
     plotView = document.getElementById("plotViewDiv");
+    searchView = document.getElementById("searchView");
 
     /* Calendar view */
     calendarView = document.getElementById("calendarViewDiv");
     //createSearchFunction();
     createCalendar();
 
+    var searchText = document.getElementById("searchText");
+    searchText.addEventListener('keyup', (event) => {
+        if (event.keyCode == 13) {
+            search(searchText.value)
+        }
+    });
+    var searchButton = document.getElementById("searchButton");
+    searchButton.addEventListener("click", () => {
+        search(searchText.value);
+    });
+
     var titleLoginButton = document.getElementById("titleLoginButton");
     titleLoginButton.addEventListener('click', showLoginView);
     if (firebase.auth().currentUser) {
         titleLoginButton.innerHTML = "Log out";
+        searchText.visible = true;
+        searchButton.visible = true;
         showCalendarView();
     } else {
         showLoginView();
@@ -49,11 +64,6 @@ function initializeGUI() {
 
 function initializeFirebase() {
     firebase.initializeApp(philipsFirebaseConfig);
-    /*firebase.auth().signOut().then(() => {
-        console.log("Signed out");
-    }).catch((error) => {
-        console.log(error);
-    })*/
 
     console.log("Loading Firebase");
     const firebaseApp = firebase;
@@ -68,39 +78,31 @@ function initializeFirebase() {
             if (!GUIInitialized) {
                 initializeGUI();
             }
+            document.getElementById("titleLoginButton").innerHTML = "Log out";
+            document.getElementById("searchText").style.visibility = "visible";
+            document.getElementById("searchButton").style.visibility = "visible";
+            showCalendarView();
         }
         else {
             console.log("state = definitely signed out");
             if (!GUIInitialized) {
                 initializeGUI();
             }
+            document.getElementById("titleLoginButton").innerHTML = "Log in";
+            document.getElementById("searchText").style.visibility = "hidden";
+            document.getElementById("searchButton").style.visibility = "hidden";
         }
     })
-    console.log(firebase.auth()["currentUser"]);
-
-    /*database.collection('Recordings').where("BTAddress", "==", "01:23:45:67:89").get().then((querySnapshot) => {
-        querySnapshot.forEach((doc) => {
-            console.log(`${doc.id} => ${doc.data().BTAddress}`);
-        });
-    }).catch((error) => {
-        console.log(error.message);
-    });*/
-    /*var record = new Recording("01:23:45:67:89", new Date(), "FileName");
-    database.collection('Recordings').withConverter(recordingConverter).add(record);*/
-
-    //var gsReference = storage.refFromURL('gs://ecg-device.appspot.com/firestore/')
-    //const fileRef = await gsReference.listAll();
-
-    //var listRef = storageRef;
 
     console.log("Firebase Loaded");
 }
 
 class Recording {
-    constructor(BTAddress, CollDate, FileName) {
+    constructor(BTAddress, CollDate, FileName, SuspectedAF) {
         this.BTAddress = BTAddress;
         this.CollDate = CollDate;
         this.FileName = FileName;
+        this.SuspectedAF = SuspectedAF;
     }
 }
 
@@ -109,17 +111,17 @@ var recordingConverter = {
         return {
             BTAddress: recording.BTAddress,
             CollDate: recording.CollDate,
-            FileName: recording.FileName
+            FileName: recording.FileName,
+            SuspectedAF: recording.SuspectedAF
         }
     },
     fromFirestore: function (snapshot, options) {
         const data = snapshot.data(options);
-        return new Recording(data.BTAddress, data.CollDate, data.FileName);
+        return new Recording(data.BTAddress, new Date(data.CollDate.seconds*1000), data.FileName, data.SuspectedAF);
     }
 };
 
 function hideAll() {
-    console.log("hide all");
     startView.setAttribute('style', 'display: none');
     loginView.setAttribute('style', 'display: none');
     calendarView.setAttribute('style', 'display: none');
@@ -161,9 +163,7 @@ function login() {
     firebase.auth().setPersistence(firebase.auth.Auth.Persistence.SESSION).then(() => {
         return firebase.auth().signInWithEmailAndPassword(email, password)
             .then((userCredentials) => {
-                console.log();
                 showCalendarView();
-                console.log(userCredentials)
             })
             .catch((error) => {
                 var errorCode = error.code;
@@ -261,6 +261,7 @@ var end = 2000;
 var list_index = 0;
 var urls = [];
 var listItems = [];
+var baseStorageUrl = 'gs://fw-update.appspot.com/';
 var currentStorage = 'gs://ecg-device.appspot.com/firestore/Philip filter160 ia50 pga8 20-12-10:11:28.csv';
 var evaluateStorageSelected = false;
 var baseStorageRef = 'firestore';
@@ -358,6 +359,7 @@ function loadPlotlyTimeSeries(ecgData) {
     overviewPlot.on('plotly_click', function (data) {
         var windowStart = data.points[0].x - windowLength / 2;
         plotlyUpdate(windowStart, windowStart + windowLength);
+        console.log(data);
     });
     overviewPlot.layout.shapes.push(viewSquare);
     overviewPlot.layout.shapes[0].x0 = 0;
@@ -430,13 +432,17 @@ function plotlyUpdate(startTime, endTime) {
     overviewPlot.layout.shapes[0].x0 = startTime;
     overviewPlot.layout.shapes[0].x1 = endTime;
     Plotly.relayout(overviewPlot, overviewPlot.layout);
+    currentIndex = startTime;
 }
 
 
+var dataProcessed = false;
+var timer;
 
+function createPlotView(id) {
+    fileName = files.get(id);
+    currentStorage = baseStorageUrl + fileName;
 
-function createPlotView() {
-    /*
     getFromStorage(storage, "1");
 
     document.getElementById('btnNext').onclick = function () {
@@ -487,7 +493,21 @@ function createPlotView() {
     }
     document.getElementById('popupCancel').onclick = function () {
         document.getElementById('clickDialog').style.display = "none";
-    }*/
+    }
+
+    hideAll();
+    plotView.setAttribute('style', 'display: unset');
+
+    timer = setInterval(timerFunc, 1000);
+}
+
+function timerFunc() {
+    if (dataProcessed) {
+        loadPlotlyTimeSeries(ecgArray);
+        plotlyUpdate(0, windowLength);
+        calculateChartStats();
+        clearInterval(timer);
+    }
 }
 
 //Här lägger vi in att run ska köras när dokumentet är laddat.
@@ -501,7 +521,7 @@ const arrayColumn = (arr, n) => arr.map(x => x[n]);
 
 function processData(allRows) {
     try {
-        console.log(allRows);
+        //console.log(allRows);
         var x = [];
         var y = [];
         standard_deviation = [];
@@ -522,11 +542,8 @@ function processData(allRows) {
         } else {
             falsePulseArray = new Array(allRows.length);
         }
-
-        loadPlotlyTimeSeries(ecgArray);
-        plotlyUpdate(0, windowLength);
-        calculateChartStats();
-
+        dataProcessed = true;
+        console.log("Data processed");
     }
     catch (TypeError) {
         console.log("Error: No data loaded");
@@ -659,8 +676,13 @@ function showCalendarView() {
     updateCalendar(currentYear, currentMonth);
 }
 
+function search() {
+    var ssn = document.getElementById("searchInput").value;
+}
+
 function createCalendar() {
     var div = document.getElementById('calendarTitleDiv');
+
     var title = document.createElement('p');
     title.id = 'calendarTitle';
     div.appendChild(title);
@@ -723,6 +745,8 @@ function updateCalendarTitle(year, month) {
     title.innerHTML = monthNames[month] + " " + year;
 }
 
+var files = new Map();
+
 function updateCalendar(year, month) {
     updateCalendarTitle(year, month);
     var day = (new Date(year, month, 1)).getDay() - 1;
@@ -771,10 +795,17 @@ function updateCalendar(year, month) {
 
     var numFilled = 0;
     var prevMonthDays = new Date(year, month, 0).getDate();
+    var currentDate;
     for (i = day; i > 0; i--) {
+        currentDate = new Date(year, (month > 0 ? month-1 : 11), prevMonthDays - i + 1);
+        var recording = recordingsContainsDate(currentDate);
+        var color = 'white';
+        if (recording != null) {
+            color = recording.SuspectedAF ? 'red' : 'lightgreen';
+        }
         var id = 'r0c' + (day - i);
         var td = document.getElementById(id);
-        td.setAttribute('style', 'background-color: lightgreen; opacity: 0.5');
+        td.setAttribute('style', 'background-color: '+color+'; opacity: 0.5');
         td.innerHTML = (prevMonthDays - i + 1);
         numFilled++;
     }
@@ -785,7 +816,17 @@ function updateCalendar(year, month) {
         var column = (day + i) % 7;
         var id = 'r' + row + 'c' + column;
         var td = document.getElementById(id);
-        td.setAttribute('style', 'background-color: lightgreen');
+        currentDate = new Date(year, month, i + 1);
+        var recording = recordingsContainsDate(currentDate);
+        var color = 'white';
+        if (recording != null) {
+            color = recording.SuspectedAF ? 'red' : 'lightgreen';
+            files.set( id, recording.FileName );
+            td.addEventListener('click', event => {
+                createPlotView(event.target.id);
+            });
+        }
+        td.setAttribute('style', 'background-color: '+color);
         td.innerHTML = (i + 1);
         numFilled++
     }
@@ -816,4 +857,42 @@ function loadNextMonth() {
         currentMonth -= 12;
     }
     updateCalendar(currentYear, currentMonth);
+}
+
+var recordings = [];
+
+function search(ssn) {
+    database.collection('Patients').where('SSN', '==', ssn).get().then((querySnapshot) => {
+        if (querySnapshot.empty) {
+
+            return;
+        }
+        database.collection('Patients').doc(ssn).collection('Recordings').withConverter(recordingConverter).get().then(snapshot => {
+            recordings = [];
+            snapshot.forEach(data => {
+                recordings.push(data.data());
+            });
+            updateCalendar(currentYear, currentMonth);
+        });
+        console.log("Searched");
+    }).catch((error) => {
+        console.log(error.message);
+    });
+}
+
+Date.prototype.isSameDateAs = function (pDate) {
+    return (
+        this.getFullYear() === pDate.getFullYear() &&
+        this.getMonth() === pDate.getMonth() &&
+        this.getDate() === pDate.getDate()
+    );
+}
+
+function recordingsContainsDate(date) {
+    for(recording of recordings) {
+        if (date.isSameDateAs(recording.CollDate)) {
+            return recording;
+        }
+    }
+    return null;
 }

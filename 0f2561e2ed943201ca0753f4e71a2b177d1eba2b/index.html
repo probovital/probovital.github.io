@@ -62,6 +62,8 @@
     <div class="pageTop">
         <img src="img/ic_launcher_foreground98.png" id="logo" />
         <p id="title">ECG analyzer</p>
+        <input id="searchText" />
+        <img id="searchButton" src="img/clipart2288671.png" />
         <div id="titleLoginButton"><p id="login">Log in</p></div>
     </div>
 
@@ -78,7 +80,7 @@
         </form>
     </div>
 
-    <!-- Data view-->
+    <!-- Plot view-->
     <div id="plotViewDiv" style="display:none">
         <div class="row">
             <div class="col-12" align="center">
@@ -195,10 +197,6 @@
                 <input type="Button" id="load_graph" value="Visa" class="btn btn-dark" />
             </div>
             <div class="col-5"></div>
-        </div>
-
-        <div class="row">
-            <div class="col-6"><img id="test" width="500" height="600"></img></div>
         </div>
 
     </div>

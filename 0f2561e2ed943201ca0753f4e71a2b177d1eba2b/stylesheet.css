@@ -57,7 +57,7 @@ div.pageTop {
     display: flex;
     justify-content: center;
     align-items: center;
-    margin-left: auto;
+    margin-left: 30px;
     margin-right: 30px;
     width: 100px;
     height: 100px;
@@ -115,4 +115,31 @@ div.pageTop {
 #loginMessage {
     color: red;
     width: 300px;
+}
+
+#searchView {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+#searchText {
+    font-size: 20pt;
+    border: none;
+    border-bottom: solid;
+    border-color: #082B3E;
+    margin-right: 15px;
+    margin-left: auto;
+    border-width: 1px;
+}
+
+#searchButton {
+    height: 30px;
+    margin-right: 30px;
+}
+    #searchButton:hover {
+        cursor: pointer;
+    }
+input:focus {
+    outline: none;
 }

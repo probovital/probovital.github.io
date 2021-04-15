@@ -7,6 +7,7 @@
 async function run() {
 
     initialize();
+    window.addEventListener('resize', resizePlot);
 }
 
 var GUI;
@@ -15,6 +16,7 @@ var loginView;
 var calendarView;
 var plotView;
 var searchView;
+var currentView;
 
 var GUIInitialized = false;
 
@@ -141,13 +143,9 @@ function showGUI() {
 
 /* Login view */
 function showLoginView() {
-    if (firebase.auth().currentUser) {
-        firebase.auth().signOut().then(() => {
-            setupLoginFunction();
-        });
-    } else {
-        setupLoginFunction();
-    }
+    
+    setupLoginFunction();
+    currentView = loginView;
 }
 
 function setupLoginFunction() {
@@ -205,7 +203,8 @@ var plotlyLayout = {
         t: 0,
         pad: 0
     },
-    shapes: []
+    shapes: [],
+    autosize: true
 }
 
 var plotlyLayoutOverview = {
@@ -222,7 +221,8 @@ var plotlyLayoutOverview = {
         t: 0,
         pad: 0
     },
-    shapes: []
+    shapes: [],
+    autosize: true
 }
 
 var cursorAdded = false;
@@ -449,6 +449,12 @@ function plotlyUpdate(startTime, endTime) {
     currentIndex = startTime;
 }
 
+function resizePlot() {
+    if (currentView === plotView) {
+        plotlyUpdate(currentIndex, currentIndex + windowLength);
+    }
+}
+
 function createPlotView(id) {
     
     fileName = files.get(id);
@@ -512,6 +518,7 @@ function createPlotView(id) {
 
     hideAll();
     plotView.setAttribute('style', 'display: unset');
+    currentView = plotView;
 }
 
 //Här lägger vi in att run ska köras när dokumentet är laddat.
@@ -693,6 +700,7 @@ function showCalendarView() {
     hideAll();
     document.getElementById('calendarViewDiv').setAttribute('style', 'display: unset');
     updateCalendar(currentYear, currentMonth);
+    currentView = calendarView;
 }
 
 function search() {

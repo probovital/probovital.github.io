@@ -60,6 +60,7 @@
 
 <body id="GUI" style="display: none">
     <div class="pageTop">
+        <div id="backButton"><p><</p></div>
         <img src="img/ic_launcher_foreground98.png" id="logo" />
         <p id="title">ECG analyzer</p>
         <input id="searchText" />
@@ -205,6 +206,14 @@
     <div id="calendarViewDiv" style="display: none">
         <div id="calendarTitleDiv"></div>
         <div id="calendarDiv" style="align:center"></div>
+        <div id="calendarLegend">
+            <p id="whiteBox"></p>
+            <p class="legend">No data</p>
+            <p id="greenBox"></p>
+            <p class="legend">No atrial fibrilation</p>
+            <p id="redBox"></p>
+            <p class="legend">Suspected atrial fibrilation</p>
+        </div>
     </div>
 
     <!--Bootstrap -->

@@ -7,7 +7,6 @@
 async function run() {
 
     initialize();
-    //createCalendar();
 }
 
 var GUI;
@@ -58,6 +57,14 @@ function initializeGUI() {
     } else {
         showLoginView();
     }
+
+    var backButton = document.getElementById('backButton');
+    backButton.addEventListener('click', function () {
+        showCalendarView();
+        hideBackButton();
+        clearPlotView();
+    });
+    hideBackButton();
 
     GUIInitialized = true;
 }
@@ -291,6 +298,11 @@ var overviewPlot;
 var selectedPoint = 0;
 var latestAction = [];
 
+function clearPlotView() {
+    Plotly.purge(mainPlot);
+    Plotly.purge(overviewPlot);
+}
+
 function getEcgData(dataItem) {
     return ecgArray.slice(dataItem, dataItem + 10);
 }
@@ -307,6 +319,7 @@ function loadPlotlyTimeSeries(ecgData) {
     mainPlot = document.getElementById('chartly_still');
 
     Plotly.purge(mainPlot);
+    plotlyLayout.shapes = [];
     Plotly.newPlot(mainPlot, [makeTrace(ecgData, 0, windowLength, "ECG data"),
                             makeTrace(missingArray, 0, windowLength, "Missing pulse detection", pulse = true, color = 'orange'),
                             makeTrace(falsePulseArray, 0, windowLength, "Incorrect pulse detection", pulse = true, color = 'red'),
@@ -355,11 +368,12 @@ function loadPlotlyTimeSeries(ecgData) {
     });
 
     overviewPlot = document.getElementById('chartly_overview');
+    Plotly.purge(overviewPlot);
+    plotlyLayoutOverview.shapes = [];
     Plotly.newPlot(overviewPlot, [makeTrace(ecgData, 0, ecgData.length, "ECG data")], plotlyLayoutOverview, { displayModeBar: false });
     overviewPlot.on('plotly_click', function (data) {
         var windowStart = data.points[0].x - windowLength / 2;
         plotlyUpdate(windowStart, windowStart + windowLength);
-        console.log(data);
     });
     overviewPlot.layout.shapes.push(viewSquare);
     overviewPlot.layout.shapes[0].x0 = 0;
@@ -435,15 +449,16 @@ function plotlyUpdate(startTime, endTime) {
     currentIndex = startTime;
 }
 
-
-var dataProcessed = false;
-var timer;
-
 function createPlotView(id) {
+    
     fileName = files.get(id);
+    if (fileName === undefined) {
+        return;
+    }
     currentStorage = baseStorageUrl + fileName;
 
     getFromStorage(storage, "1");
+    showBackButton();
 
     document.getElementById('btnNext').onclick = function () {
         if (currentIndex + windowLength < ecgArray.length) {
@@ -497,17 +512,6 @@ function createPlotView(id) {
 
     hideAll();
     plotView.setAttribute('style', 'display: unset');
-
-    timer = setInterval(timerFunc, 1000);
-}
-
-function timerFunc() {
-    if (dataProcessed) {
-        loadPlotlyTimeSeries(ecgArray);
-        plotlyUpdate(0, windowLength);
-        calculateChartStats();
-        clearInterval(timer);
-    }
 }
 
 //Här lägger vi in att run ska köras när dokumentet är laddat.
@@ -542,7 +546,11 @@ function processData(allRows) {
         } else {
             falsePulseArray = new Array(allRows.length);
         }
-        dataProcessed = true;
+
+        loadPlotlyTimeSeries(ecgArray);
+        plotlyUpdate(0, windowLength);
+        calculateChartStats();
+        
         console.log("Data processed");
     }
     catch (TypeError) {
@@ -594,19 +602,30 @@ function calculateMean(numbers) {
 }
 
 function normalize(array, start, end, pulse = false) {
-    var parsedArray = parseToFloat(array);
-
-    var min = Math.min.apply(Math, parsedArray.slice(start, end));
-    var max = Math.max.apply(Math, parsedArray.slice(start, end));
     normalizedArray = [];
-    for (i = 0; i < parsedArray.length; i++) {
-        if (pulse) {
-            normalizedArray.push(((parsedArray[i] - min) / (max - min)) / 10);
+    try {
+        var parsedArray = parseToFloat(array);
+        var referenceArray = parsedArray.slice(start, end);
+        var min = referenceArray[0];
+        var max = referenceArray[0];
+        for (i = 0; i < referenceArray.length; i++) {
+            var value = referenceArray[i];
+            min = value < min ? value : min;
+            max = value > max ? value : max;
         }
-        else {
-            normalizedArray.push((parsedArray[i] - min) / (max - min));
+
+        for (i = 0; i < parsedArray.length; i++) {
+            if (pulse) {
+                normalizedArray.push(((parsedArray[i] - min) / (max - min)) / 10);
+            }
+            else {
+                normalizedArray.push((parsedArray[i] - min) / (max - min));
+            }
         }
+    } catch (error) {
+        console.log(error)
     }
+
     return normalizedArray;
 }
 
@@ -725,7 +744,10 @@ function createCalendar() {
         tr = document.createElement('tr');
         for (j = 0; j < 7; j++) {
             var td = document.createElement('td');
-            td.id = 'r'+i+'c'+j;
+            td.id = 'r' + i + 'c' + j;
+            td.addEventListener('click', event => {
+                createPlotView(event.target.id);
+            });
             tr.appendChild(td);
         }
         tbl.appendChild(tr);
@@ -822,9 +844,6 @@ function updateCalendar(year, month) {
         if (recording != null) {
             color = recording.SuspectedAF ? 'red' : 'lightgreen';
             files.set( id, recording.FileName );
-            td.addEventListener('click', event => {
-                createPlotView(event.target.id);
-            });
         }
         td.setAttribute('style', 'background-color: '+color);
         td.innerHTML = (i + 1);
@@ -832,11 +851,17 @@ function updateCalendar(year, month) {
     }
 
     for (i = numFilled; i < 42; i++) {
+        currentDate = new Date(year, ((month + 1) % 12), i + 1 - numFilled);
+        var recording = recordingsContainsDate(currentDate);
+        var color = 'white';
+        if (recording != null) {
+            color = recording.SuspectedAF ? 'red' : 'lightgreen';
+        }
         var row = math.floor(i / 7);
         var column = i % 7;
         var id = 'r' + row + 'c' + column;
         var td = document.getElementById(id);
-        td.setAttribute('style', 'background-color: lightgreen; opacity: 0.5');
+        td.setAttribute('style', 'background-color: '+color+'; opacity: 0.5');
         td.innerHTML = (i - numFilled + 1);
     }
 }
@@ -895,4 +920,13 @@ function recordingsContainsDate(date) {
         }
     }
     return null;
+}
+
+function showBackButton() {
+    document.getElementById("backButton").setAttribute('style', 'visibility: visible;');
+}
+
+function hideBackButton() {
+    document.getElementById("backButton").setAttribute('style', 'visibility: hidden;');
+
 }

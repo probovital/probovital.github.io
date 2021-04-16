@@ -35,7 +35,6 @@ function initializeGUI() {
 
     /* Calendar view */
     calendarView = document.getElementById("calendarViewDiv");
-    //createSearchFunction();
     createCalendar();
 
     var searchText = document.getElementById("searchText");
@@ -67,6 +66,8 @@ function initializeGUI() {
         clearPlotView();
     });
     hideBackButton();
+
+    initializePlotView();
 
     GUIInitialized = true;
 }
@@ -290,7 +291,7 @@ var newBeats = []
 var medianBeat = []
 var storage = 0;
 var database = 0;
-var normalizedECGData = [];
+var currentRecording;
 
 var mainPlot;
 var overviewPlot;
@@ -298,9 +299,63 @@ var overviewPlot;
 var selectedPoint = 0;
 var latestAction = [];
 
+function initializePlotView() {
+    document.getElementById('btnNext').onclick = function () {
+        if (currentIndex + windowLength < ecgArray.length) {
+            currentIndex += windowLength;
+            plotlyUpdate(currentIndex, currentIndex + windowLength)
+        }
+    }
+
+    document.getElementById('btnBack').onclick = function () {
+        if (currentIndex >= windowLength) {
+            currentIndex -= windowLength;
+            plotlyUpdate(currentIndex, currentIndex + windowLength)
+        }
+        else if (currentIndex > 0) {
+            currentIndex = 0;
+            plotlyUpdate(currentIndex, currentIndex + windowLength)
+        }
+    }
+
+    document.getElementById('btnUpdateWindowSize').onclick = function () {
+        var textWindowSize = document.getElementById('textWindowSize');
+        var windowSize = parseInt(textWindowSize.value);
+        console.log(windowSize + " " + textWindowSize.value);
+        windowLength = windowSize;
+        plotlyUpdate(currentIndex, currentIndex + windowSize);
+        textWindowSize.placeholder = windowSize;
+        textWindowSize.value = "";
+    }
+
+    document.getElementById('textWindowSize').addEventListener('keyup', function (event) {
+        if (event.keyCode === 13) {
+            document.getElementById('btnUpdateWindowSize').click();
+        }
+    });
+
+    document.getElementById('btnMissingPulse').onclick = function () {
+        document.getElementById('clickDialog').style.display = "none";
+        missingArray[selectedPoint] = "1";
+        plotlyUpdate(currentIndex, currentIndex + windowLength);
+        latestAction.push({ "point": selectedPoint, "array": "missingArray" });
+
+    }
+    document.getElementById('btnFalsePulse').onclick = function () {
+        document.getElementById('clickDialog').style.display = "none";
+        falsePulseArray[selectedPoint] = "1";
+        plotlyUpdate(currentIndex, currentIndex + windowLength);
+        latestAction.push({ "point": selectedPoint, "array": "falsePulseArray" });
+    }
+    document.getElementById('popupCancel').onclick = function () {
+        document.getElementById('clickDialog').style.display = "none";
+    }
+}
+
 function clearPlotView() {
     Plotly.purge(mainPlot);
     Plotly.purge(overviewPlot);
+    document.getElementById("plotTitle").innerHTML = "";
 }
 
 function getEcgData(dataItem) {
@@ -315,6 +370,9 @@ function makeTrace(data, start, end, name, pulse = false, color = gray, type = '
 
 function loadPlotlyTimeSeries(ecgData) {
 
+    var date = currentRecording.CollDate;
+    var plotTitle = `${patient.Name} ${date.getDate()} ${monthNames[date.getMonth()]} ${date.getFullYear()}`;
+    document.getElementById("plotTitle").innerHTML = plotTitle;
     currentIndex = 0;
     mainPlot = document.getElementById('chartly_still');
 
@@ -456,65 +514,15 @@ function resizePlot() {
 }
 
 function createPlotView(id) {
-    
-    fileName = files.get(id);
-    if (fileName === undefined) {
+
+    currentRecording = calendarRecordings.get(id);
+    if (currentRecording === undefined) {
         return;
     }
-    currentStorage = baseStorageUrl + fileName;
+    currentStorage = baseStorageUrl + currentRecording.FileName;
 
     getFromStorage(storage, "1");
     showBackButton();
-
-    document.getElementById('btnNext').onclick = function () {
-        if (currentIndex + windowLength < ecgArray.length) {
-            currentIndex += windowLength;
-            plotlyUpdate(currentIndex, currentIndex + windowLength)
-        }
-    }
-
-    document.getElementById('btnBack').onclick = function () {
-        if (currentIndex >= windowLength) {
-            currentIndex -= windowLength;
-            plotlyUpdate(currentIndex, currentIndex + windowLength)
-        }
-        else if (currentIndex > 0) {
-            currentIndex = 0;
-            plotlyUpdate(currentIndex, currentIndex + windowLength)
-        }
-    }
-
-    document.getElementById('btnUpdateWindowSize').onclick = function () {
-        var textWindowSize = document.getElementById('textWindowSize');
-        var windowSize = parseInt(textWindowSize.value);
-        windowLength = windowSize;
-        plotlyUpdate(currentIndex, currentIndex + windowSize);
-        textWindowSize.placeholder = windowSize;
-        textWindowSize.value = "";
-    }
-
-    document.getElementById('textWindowSize').addEventListener('keyup', function (event) {
-        if (event.keyCode === 13) {
-            document.getElementById('btnUpdateWindowSize').click();
-        }
-    });
-
-    document.getElementById('btnMissingPulse').onclick = function () {
-        document.getElementById('clickDialog').style.display = "none";
-        missingArray[selectedPoint] = "1";
-        plotlyUpdate(currentIndex, currentIndex + windowLength);
-        latestAction.push({ "point": selectedPoint, "array": "missingArray" });
-
-    }
-    document.getElementById('btnFalsePulse').onclick = function () {
-        document.getElementById('clickDialog').style.display = "none";
-        falsePulseArray[selectedPoint] = "1";
-        plotlyUpdate(currentIndex, currentIndex + windowLength);
-        latestAction.push({ "point": selectedPoint, "array": "falsePulseArray" });
-    }
-    document.getElementById('popupCancel').onclick = function () {
-        document.getElementById('clickDialog').style.display = "none";
-    }
 
     hideAll();
     plotView.setAttribute('style', 'display: unset');
@@ -772,10 +780,10 @@ function createCalendar() {
 
 function updateCalendarTitle(year, month) {
     var title = document.getElementById('calendarTitle')
-    title.innerHTML = monthNames[month] + " " + year;
+    title.innerHTML = patient.Name + " - " + monthNames[month] + " " + year;
 }
 
-var files = new Map();
+var calendarRecordings = new Map();
 
 function updateCalendar(year, month) {
     updateCalendarTitle(year, month);
@@ -840,6 +848,7 @@ function updateCalendar(year, month) {
         numFilled++;
     }
 
+    calendarRecordings.clear();
     var i = 0;
     for (i = 0; i < days; i++) {
         var row = math.floor((day + i) / 7);
@@ -851,7 +860,7 @@ function updateCalendar(year, month) {
         var color = 'white';
         if (recording != null) {
             color = recording.SuspectedAF ? 'red' : 'lightgreen';
-            files.set( id, recording.FileName );
+            calendarRecordings.set( id, recording );
         }
         td.setAttribute('style', 'background-color: '+color);
         td.innerHTML = (i + 1);
@@ -893,19 +902,27 @@ function loadNextMonth() {
 }
 
 var recordings = [];
+var patient = { Name: "", SSN: "1234567890" };
 
 function search(ssn) {
     database.collection('Patients').where('SSN', '==', ssn).get().then((querySnapshot) => {
         if (querySnapshot.empty) {
-
+            alert("The patient you searched for is not included in this database");
             return;
         }
+        querySnapshot.forEach(doc => {
+            patient = doc.data();
+        });
         database.collection('Patients').doc(ssn).collection('Recordings').withConverter(recordingConverter).get().then(snapshot => {
             recordings = [];
             snapshot.forEach(data => {
                 recordings.push(data.data());
             });
+            if (currentView == plotView) {
+                clearPlotView();
+            }
             updateCalendar(currentYear, currentMonth);
+            showCalendarView();
         });
         console.log("Searched");
     }).catch((error) => {

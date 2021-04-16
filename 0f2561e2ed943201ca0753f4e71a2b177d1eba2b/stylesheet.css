@@ -209,10 +209,16 @@ p.legend {
 }
 
 #plotTitle {
-    font-size: 20px;
+    font-size: 20pt;
 }
 
 #afLegend {
     display: flex;
     justify-content: center;
+}
+
+#plotView {
+    display: flex;
+    justify-content: center;
+    align-items: center;
 }

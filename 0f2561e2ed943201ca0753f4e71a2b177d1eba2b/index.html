@@ -84,43 +84,16 @@
 
     <!-- Plot view-->
     <div id="plotViewDiv" style="display:none">
-        <div class="row">
-            <div class="col-12" align="center">
+        <div>
+            <div align="center">
                 <h1 id="plotTitle"></h1>
                 <div id="chartly_still" style="height: 450px;"></div>
                 <div id="chartly_overview" style="height: 50px; margin-bottom: 10px; margin-top: 5px"></div>
             </div>
         </div>
 
-        <!-- OnClick popup-->
-        <div class="container bg-light border border-secondary" id="clickDialog" style="display:none; width: 400px;">
-            <div class="row">
-                <div class="col-10"></div>
-                <div class="col-2">
-                    <input type="Button" id="popupCancel" value="x" class="btn" style="margin-bottom:00px">
-                </div>
-            </div>
-            <div class="row">
-                <div class="col-12" align="center" style="margin-bottom:20px">
-                    <div class="text" id="selectedPointsText"></div>
-                </div>
-            </div>
-            <div class="row">
-                <div class="col-12" align="center" style="margin-bottom:20px">
-                    <div class="text">Select if the algorithm missed a pulse or falsely sensed a pulse where no QRS complex was seen</div>
-                </div>
-            </div>
-            <div class="row">
-                <div class="col-12" align="center" style="margin-bottom:40px">
-                    <input type="Button" id="btnMissingPulse" value="Missing" class="btn btn-dark" style="margin-right:40px">
-                    <input type="Button" id="btnFalsePulse" value="Incorrect" class="btn btn-dark" style="margin-left:40px" />
-                </div>
-            </div>
-        </div>
-
-
         <!-- Chart-buttons-->
-        <div class="row">
+        <div>
             <div class="col-12" align="center" style="margin-bottom:10px">
                 <div id="afLegend">
                     <p style="height: 20px; width: 20px; background-color: red; opacity: 0.2; margin-right: 5px;"></p>
@@ -133,10 +106,21 @@
             </div>
         </div>
 
+        <!-- OnClick popup-->
+        <div id="clickDialog" align="center" style="display:none;">
+            <div class="text" id="selectedPointsText"></div>
+            <div class="text">Select if the algorithm missed a pulse or falsely sensed a pulse where no QRS complex was seen</div>
+            <div>
+                <input type="Button" id="btnMissingPulse" value="Missing" class="btn btn-dark" style="margin-left:auto" />
+                <input type="Button" id="btnFalsePulse" value="Incorrect" class="btn btn-dark" />
+                <input type="Button" id="btnCancel" value="Cancel" class="btn btn-dark" style="margin-right: auto" />
+            </div>
+        </div>
+
 
         <!-- Chart stats-->
-        <div class="container bg-light border border-secondary" id="chartStats" style="width: 300px; margin-top:10px; margin-bottom:10px">
-            <div class="row">
+        <div class="container bg-light border border-secondary" id="chartStats" style="width: 300px; margin-top:10px; margin-bottom:10px; display: none">
+            <div>
                 <div class="col-12" align="center" style="margin-top:10px; margin-bottom:0px">
                     <div class="text" id="chartStatText"></div>
                 </div>
@@ -210,7 +194,7 @@
 
     <!-- Calendar view -->
     <div id="calendarViewDiv" style="display: none">
-        <div id="calendarTitleDiv"></div>
+        <h1 id="calendarTitleDiv"></h1>
         <div id="calendarDiv" style="align:center"></div>
         <div id="calendarLegend">
             <p id="whiteBox"></p>

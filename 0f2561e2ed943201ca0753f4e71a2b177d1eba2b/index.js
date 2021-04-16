@@ -22,6 +22,7 @@ var GUIInitialized = false;
 
 function initialize() {
     initializeFirebase();
+    initializeGUI();
 }
 
 function initializeGUI() {
@@ -49,7 +50,7 @@ function initializeGUI() {
     });
 
     var titleLoginButton = document.getElementById("titleLoginButton");
-    titleLoginButton.addEventListener('click', showLoginView);
+    titleLoginButton.addEventListener('click', titleLoginButtonFunction);
     if (firebase.auth().currentUser) {
         titleLoginButton.innerHTML = "Log out";
         searchText.visible = true;
@@ -58,6 +59,7 @@ function initializeGUI() {
     } else {
         showLoginView();
     }
+    setupLoginFunction();
 
     var backButton = document.getElementById('backButton');
     backButton.addEventListener('click', function () {
@@ -66,6 +68,10 @@ function initializeGUI() {
         clearPlotView();
     });
     hideBackButton();
+
+    document.getElementById("ssnText").style.visibility = "hidden";
+    document.getElementById("searchText").style.visibility = "hidden";
+    document.getElementById("searchButton").style.visibility = "hidden";
 
     initializePlotView();
 
@@ -85,22 +91,28 @@ function initializeFirebase() {
     firebase.auth().onAuthStateChanged(user => {
         if (user) {
             console.log("state = definitely signed in");
-            if (!GUIInitialized) {
+            /*if (!GUIInitialized) {
                 initializeGUI();
-            }
+            }*/
             document.getElementById("titleLoginButton").innerHTML = "Log out";
+            document.getElementById("ssnText").style.visibility = "visible";
             document.getElementById("searchText").style.visibility = "visible";
             document.getElementById("searchButton").style.visibility = "visible";
+            document.getElementById("email").value = "";
+            document.getElementById("password").value = "";
+            document.getElementById("loginMessage").innerHTML = "";
             showCalendarView();
         }
         else {
             console.log("state = definitely signed out");
-            if (!GUIInitialized) {
+            /*if (!GUIInitialized) {
                 initializeGUI();
-            }
+            }*/
             document.getElementById("titleLoginButton").innerHTML = "Log in";
+            document.getElementById("ssnText").style.visibility = "hidden";
             document.getElementById("searchText").style.visibility = "hidden";
             document.getElementById("searchButton").style.visibility = "hidden";
+            document.getElementById("searchText").value = "";
         }
     })
 
@@ -144,14 +156,19 @@ function showGUI() {
 
 /* Login view */
 function showLoginView() {
-    
-    setupLoginFunction();
+    hideAll();
+    loginView.setAttribute('style', 'display: flex');
     currentView = loginView;
 }
 
+function titleLoginButtonFunction() {
+    if (firebase.auth().currentUser) {
+        firebase.auth().signOut();
+    }
+    showLoginView();
+}
+
 function setupLoginFunction() {
-    hideAll();
-    loginView.setAttribute('style', 'display: flex');
     var loginButton = document.getElementById("loginButton");
     loginButton.addEventListener('click', login);
     var password = document.getElementById("password");
@@ -347,7 +364,7 @@ function initializePlotView() {
         plotlyUpdate(currentIndex, currentIndex + windowLength);
         latestAction.push({ "point": selectedPoint, "array": "falsePulseArray" });
     }
-    document.getElementById('popupCancel').onclick = function () {
+    document.getElementById('btnCancel').onclick = function () {
         document.getElementById('clickDialog').style.display = "none";
     }
 }
@@ -386,7 +403,7 @@ function loadPlotlyTimeSeries(ecgData) {
     mainPlot.on('plotly_click', function (data) {
         dialog = document.getElementById('clickDialog');
         dialog.style.backgroundColor = "red";
-        dialog.setAttribute("style", "width:400px");
+        dialog.setAttribute("style", "display: unset");
 
         var pts = '';
         if (data.points.length > 0) {
@@ -399,7 +416,7 @@ function loadPlotlyTimeSeries(ecgData) {
         var signalText = "Signal to noise at this location: " + signal;
 
         text = document.getElementById('selectedPointsText');
-        text.innerText = 'Closest point clicked:\n\n' + pts + signalText;
+        text.innerText = 'Closest point clicked:\n' + pts + signalText;
         console.log(data);
     });
 

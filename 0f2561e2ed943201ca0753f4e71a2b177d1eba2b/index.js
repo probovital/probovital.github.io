@@ -728,10 +728,6 @@ function showCalendarView() {
     currentView = calendarView;
 }
 
-function search() {
-    var ssn = document.getElementById("searchInput").value;
-}
-
 function createCalendar() {
     var div = document.getElementById('calendarTitleDiv');
 
@@ -922,6 +918,10 @@ var recordings = [];
 var patient = { Name: "", SSN: "1234567890" };
 
 function search(ssn) {
+    ssn = ssn.split('-').join('');
+    if (ssn.length > 10) {
+        ssn = ssn.substring(2);
+    }
     database.collection('Patients').where('SSN', '==', ssn).get().then((querySnapshot) => {
         if (querySnapshot.empty) {
             alert("The patient you searched for is not included in this database");

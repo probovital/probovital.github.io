@@ -24,7 +24,6 @@ function getFromStorage(storage, reference){
       //var cors1 = "https://gobetween.oklabs.org/";
       //var cors2 = "https://cors-anywhere.herokuapp.com/";
       //url2 = cors2 + url;
-      console.log(url);
         makeplot(url);
     }).catch(function(error) {
       // Handle any errors

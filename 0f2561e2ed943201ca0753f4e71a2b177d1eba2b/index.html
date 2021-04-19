@@ -4,8 +4,6 @@
 <html lang="en">
 <head>
     <title>Auricula ECG</title>
-    <script src="pace.js"></script>
-    <link href="paceLoaderCorner.css" rel="stylesheet" />
     <link rel="stylesheet" href="stylesheet.css" />
     <link rel="icon" href="img/ic_launcher_round.png" />
     <!--Bootstrap -->
@@ -13,46 +11,21 @@
     <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.0/css/bootstrap.min.css"
           integrity="sha384-9aIt2nRpC12Uk9gS9baDl411NQApFmC26EwAOH8WgZl5MYYxFfc+NcPb1dKGj7Sk"
           crossorigin="anonymous">
-    <!--Bootstrap -->
 
-    <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
     <!-- Plotly-->
+    <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
 
-    <script src="https://cdn.jsdelivr.net/npm/low-pass-filter"></script>
-    <!-- Low pass filter-->
-
-
-
-    <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@1.0.0/dist/tf.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/chart.js@2.8.0"></script>
     <!-- Import tfjs-vis -->
     <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs-vis@1.0.2/dist/tfjs-vis.umd.min.js"></script>
     <script src="math.js"></script>
-    <script src="fft.js"></script>
-    <script src="papaparse.min.js"></script>
-    <script src="dsp.js"></script>
-    <!-- Insert these scripts at the bottom of the HTML, but before you use any Firebase services -->
-    <!--<script src="https://www.gstatic.com/firebasejs/7.14.1/firebase-app.js"></script> -->
     <script src="https://www.gstatic.com/firebasejs/7.15.3/firebase-app.js"></script>
 
     <script src="https://www.gstatic.com/firebasejs/7.15.3/firebase-auth.js"></script>
     <script src="https://www.gstatic.com/firebasejs/7.15.3/firebase-firestore.js"></script>
     <script src="https://www.gstatic.com/firebasejs/7.15.3/firebase-database.js"></script>
     <script src="https://www.gstatic.com/firebasejs/7.15.3/firebase-storage.js"></script>
-
-
-    <!-- include only the Firebase features as you need -->
-    <!--<script defer src="/__/firebase/7.15.3/firebase-app.js"></script>
-
-    <script defer src="/__/firebase/7.15.3/firebase-auth.js"></script>
-    <script defer src="/__/firebase/7.15.3/firebase-database.js"></script>
-    <script defer src="/__/firebase/7.15.3/firebase-messaging.js"></script>
-    <script defer src="/__/firebase/7.15.3/firebase-storage.js"></script>
-
-    <script defer src="/__/firebase/init.js"></script> -->
-    <script src="firebase.js"></script>
-    <script src="oldIndexCode.js"></script>
     <script src="index.js"></script>
+    <script src="firebase.js"></script>
     <script src="philipsFirebase.js"></script>
 
 </head>
@@ -64,7 +37,7 @@
         <img src="img/ic_launcher_foreground98.png" id="logo" />
         <p id="title">ECG analyzer</p>
         <p id="ssnText">Social security number:</p>
-        <input id="searchText" placeholder="YYMMDDXXXX" />
+        <input id="searchText" />
         <img id="searchButton" src="img/clipart2288671.png" />
         <div id="titleLoginButton"><p id="login">Log in</p></div>
     </div>

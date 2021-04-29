@@ -75,6 +75,8 @@ function initializeGUI() {
 
     initializePlotView();
 
+    createPlotView(1);
+
     GUIInitialized = true;
 }
 
@@ -286,7 +288,7 @@ var end = 2000;
 var list_index = 0;
 var urls = [];
 var listItems = [];
-var baseStorageUrl = 'gs://fw-update.appspot.com/';
+var baseStorageUrl = 'gs://fw-update.appspot.com/RecordingData/';
 var currentStorage = 'gs://ecg-device.appspot.com/firestore/Philip filter160 ia50 pga8 20-12-10:11:28.csv';
 var evaluateStorageSelected = false;
 var baseStorageRef = 'firestore';
@@ -379,17 +381,17 @@ function getEcgData(dataItem) {
     return ecgArray.slice(dataItem, dataItem + 10);
 }
 function makeTrace(data, start, end, name, pulse = false, color = gray, type = 'line') {
-    plotData = normalize(data, start, end, pulse);
     var plotStart = math.max(0, start - 1.1 * windowLength);
     var plotEnd = end + 1.1 * windowLength;
-    return { x: range(plotStart, plotEnd), y: plotData.slice(plotStart, plotEnd), name: name, type: type, line: { color: color, width: 3 }, hoverinfo: 'none' }
+    plotData = normalize(data, start, end, pulse);
+    return { x: range(plotStart, plotEnd), y: plotData, name: name, type: type, line: { color: color, width: 3 }, hoverinfo: 'none' }
 }
 
 function loadPlotlyTimeSeries(ecgData) {
 
-    var date = currentRecording.CollDate;
+    /*var date = currentRecording.CollDate;
     var plotTitle = `${patient.Name} ${date.getDate()} ${monthNames[date.getMonth()]} ${date.getFullYear()}`;
-    document.getElementById("plotTitle").innerHTML = plotTitle;
+    document.getElementById("plotTitle").innerHTML = plotTitle;*/
     currentIndex = 0;
     mainPlot = document.getElementById('chartly_still');
 
@@ -453,17 +455,49 @@ function loadPlotlyTimeSeries(ecgData) {
     overviewPlot.layout.shapes.push(viewSquare);
     overviewPlot.layout.shapes[0].x0 = 0;
     overviewPlot.layout.shapes[0].x1 = windowLength;
+    updateShapes(0, ecgData.length, overviewPlot.layout.shapes);
+    updateShapes(0, windowLength, mainPlot.layout.shapes);
+    Plotly.relayout(overviewPlot, overviewPlot.layout);
+    Plotly.relayout(mainPlot, mainPlot.layout);
+}
+
+
+function plotlyUpdate(startTime, endTime) {
+    Plotly.react(mainPlot, [makeTrace(ecgArray, startTime, endTime, "ECG data", pulse = false),
+                                    makeTrace(missingArray, startTime, endTime, "Missing pulse detection", pulse = true, color = 'orange'),
+                                    makeTrace(falsePulseArray, startTime, endTime, "Incorrect pulse detection", pulse = true, color = 'red'),
+                                    makeTrace(pulseArray, startTime, endTime, "Pulse detection", pulse = true, color = auriculaPrimaryColor)], plotlyLayout);
+    calculateChartStats();
+    overviewPlot.layout.shapes[0].x0 = startTime;
+    overviewPlot.layout.shapes[0].x1 = endTime;
+    Plotly.relayout(overviewPlot, overviewPlot.layout);
+    mainPlot.layout.shapes = new Array(mainPlot.layout.shapes[0]);
+    updateShapes(math.max(startTime - windowLength, 0), math.min(endTime + windowLength, ecgArray.length), mainPlot.layout.shapes);
+    Plotly.relayout(mainPlot, {
+        xaxis: {
+            range: [startTime, (endTime)],
+            zeroline: false
+        },
+        yaxis: {
+            range: [0, 1.1],
+            visible: false
+        }
+    })
+    currentIndex = startTime;
+}
+
+function updateShapes(startIndex, endIndex, shapes) {
     var boxNum = 0;
     var afState = false;
     var start = 0;
-    for (i = 0; i < afArray.length; i++) {
-        afValue = afArray[i].replace(',','.');
+    for (i = startIndex; i < endIndex; i++) {
+        afValue = afArray[i];
         if (!afState && afValue < 0) {
             afState = true;
             start = i;
-        } else if (afState && afValue > 0) {
+        } else if (afState && (afValue >= 0 || i == endIndex - 1)) {
             afState = false;
-            overviewPlot.layout.shapes.push({
+            shapes.push({
                 xid: 3 + boxNum,
                 type: 'square',
                 xref: 'x',
@@ -479,49 +513,9 @@ function loadPlotlyTimeSeries(ecgData) {
                     color: 'red'
                 }
             });
-            mainPlot.layout.shapes.push({
-                xid: 3 + boxNum,
-                type: 'square',
-                xref: 'x',
-                yref: 'y',
-                x0: start,
-                y0: 0,
-                x1: i,
-                y1: 1.1,
-                opacity: 0.2,
-                fillcolor: 'red',
-                line: {
-                    width: 0,
-                    color: 'red'
-                }
-            });
             boxNum++;
         }
     }
-    Plotly.relayout(overviewPlot, overviewPlot.layout);
-}
-
-
-function plotlyUpdate(startTime, endTime) {
-    Plotly.react(mainPlot, [makeTrace(ecgArray, startTime, endTime, "ECG data", pulse = false),
-                                    makeTrace(missingArray, startTime, endTime, "Missing pulse detection", pulse = true, color = 'orange'),
-                                    makeTrace(falsePulseArray, startTime, endTime, "Incorrect pulse detection", pulse = true, color = 'red'),
-                                    makeTrace(pulseArray, startTime, endTime, "Pulse detection", pulse = true, color = auriculaPrimaryColor)], plotlyLayout);
-    Plotly.relayout(mainPlot, {
-        xaxis: {
-            range: [startTime, (endTime)],
-            zeroline: false
-        },
-        yaxis: {
-            range: [0, 1.1],
-            visible: false
-        }
-    })
-    calculateChartStats();
-    overviewPlot.layout.shapes[0].x0 = startTime;
-    overviewPlot.layout.shapes[0].x1 = endTime;
-    Plotly.relayout(overviewPlot, overviewPlot.layout);
-    currentIndex = startTime;
 }
 
 function resizePlot() {
@@ -532,11 +526,13 @@ function resizePlot() {
 
 function createPlotView(id) {
 
-    currentRecording = calendarRecordings.get(id);
+    /*currentRecording = calendarRecordings.get(id);
     if (currentRecording === undefined) {
         return;
     }
-    currentStorage = baseStorageUrl + currentRecording.FileName;
+    currentStorage = baseStorageUrl + currentRecording.FileName;*/
+
+    //makeplot("1234567890_21-04-26_10_44.csv");
 
     getFromStorage(storage, "1");
     showBackButton();
@@ -557,16 +553,16 @@ const arrayColumn = (arr, n) => arr.map(x => x[n]);
 
 function processData(allRows) {
     try {
-        //console.log(allRows);
+        console.log(allRows);
         var x = [];
         var y = [];
         standard_deviation = [];
         var keys = Object.keys(allRows[0]);
 
-        rawECGArray = arrayColumn(allRows, 'rawECG');
-        ecgArray = arrayColumn(allRows, 'ECG');
-        pulseArray = arrayColumn(allRows, 'Label');
-        afArray = arrayColumn(allRows, 'AFSum');
+        rawECGArray = parseToFloat(arrayColumn(allRows, 'rawECG'));
+        ecgArray = parseToFloat(arrayColumn(allRows, 'ECG'));
+        pulseArray = parseToFloat(arrayColumn(allRows, 'Label'));
+        afArray = parseToFloat(arrayColumn(allRows, 'AFSum'));
 
         if (keys.includes('Missing')) {
             missingArray = arrayColumn(allRows, 'Missing');
@@ -613,7 +609,7 @@ function range(start, stop, step) {
 
 function parseToFloat(array) {
 
-    parsedArray = [];
+    var parsedArray = [];
     if (typeof array[0] === 'string' || array[0] instanceof String) {
         for (i = 0; i < array.length; i++) {
             parsedArray.push(parseFloat(array[i].replace(",", ".")));
@@ -636,8 +632,8 @@ function calculateMean(numbers) {
 function normalize(array, start, end, pulse = false) {
     normalizedArray = [];
     try {
-        var parsedArray = parseToFloat(array);
-        var referenceArray = parsedArray.slice(start, end);
+        arrayToNormalize = array.slice(math.max(0, start - 1.1 * windowLength), math.min(array.length, end + 1.1 * windowLength));
+        var referenceArray = array.slice(start, end);
         var min = referenceArray[0];
         var max = referenceArray[0];
         for (i = 0; i < referenceArray.length; i++) {
@@ -646,12 +642,12 @@ function normalize(array, start, end, pulse = false) {
             max = value > max ? value : max;
         }
 
-        for (i = 0; i < parsedArray.length; i++) {
+        for (i = 0; i < arrayToNormalize.length; i++) {
             if (pulse) {
-                normalizedArray.push(((parsedArray[i] - min) / (max - min)) / 10);
+                normalizedArray.push(((arrayToNormalize[i] - min) / (max - min)) / 10);
             }
             else {
-                normalizedArray.push((parsedArray[i] - min) / (max - min));
+                normalizedArray.push((arrayToNormalize[i] - min) / (max - min));
             }
         }
     } catch (error) {

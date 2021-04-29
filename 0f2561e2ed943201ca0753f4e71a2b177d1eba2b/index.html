@@ -179,6 +179,21 @@
         </div>
     </div>
 
+    <!-- The `multiple` attribute lets users select multiple files. -->
+    <input type="file" id="file-selector">
+    <script>
+        const fileSelector = document.getElementById('file-selector');
+        fileSelector.addEventListener('change', (event) => {
+            const fileList = event.target.files;
+            console.log(fileList);
+            var filereader = new FileReader();
+            filereader.onload = function () {
+                makeplot(filereader.result);
+            }
+            filereader.readAsDataURL(fileList[0]);
+        });
+    </script>
+
     <!--Bootstrap -->
     <script src="https://code.jquery.com/jquery-3.5.1.slim.min.js"
             integrity="sha384-DfXdz2htPH0lsSSs5nCTpuj/zy4C+OGpamoFVy38MVBnE+IbbVYUew+OrCXaRkfj" crossorigin="anonymous"></script>

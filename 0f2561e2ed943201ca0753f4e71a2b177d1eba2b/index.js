@@ -75,8 +75,6 @@ function initializeGUI() {
 
     initializePlotView();
 
-    createPlotView(1);
-
     GUIInitialized = true;
 }
 
@@ -122,10 +120,10 @@ function initializeFirebase() {
 }
 
 class Recording {
-    constructor(BTAddress, CollDate, FileName, SuspectedAF) {
+    constructor(BTAddress, CollDate, SSN, SuspectedAF) {
         this.BTAddress = BTAddress;
         this.CollDate = CollDate;
-        this.FileName = FileName;
+        this.SSN = SSN;
         this.SuspectedAF = SuspectedAF;
     }
 }
@@ -135,13 +133,13 @@ var recordingConverter = {
         return {
             BTAddress: recording.BTAddress,
             CollDate: recording.CollDate,
-            FileName: recording.FileName,
+            SSN: recording.SSN,
             SuspectedAF: recording.SuspectedAF
         }
     },
     fromFirestore: function (snapshot, options) {
         const data = snapshot.data(options);
-        return new Recording(data.BTAddress, new Date(data.CollDate.seconds*1000), data.FileName, data.SuspectedAF);
+        return new Recording(data.BTAddress, new Date(data.CollDate.seconds*1000), data.SSN, data.SuspectedAF);
     }
 };
 
@@ -389,9 +387,9 @@ function makeTrace(data, start, end, name, pulse = false, color = gray, type = '
 
 function loadPlotlyTimeSeries(ecgData) {
 
-    /*var date = currentRecording.CollDate;
+    var date = currentRecording.CollDate;
     var plotTitle = `${patient.Name} ${date.getDate()} ${monthNames[date.getMonth()]} ${date.getFullYear()}`;
-    document.getElementById("plotTitle").innerHTML = plotTitle;*/
+    document.getElementById("plotTitle").innerHTML = plotTitle;
     currentIndex = 0;
     mainPlot = document.getElementById('chartly_still');
 
@@ -467,7 +465,7 @@ function plotlyUpdate(startTime, endTime) {
                                     makeTrace(missingArray, startTime, endTime, "Missing pulse detection", pulse = true, color = 'orange'),
                                     makeTrace(falsePulseArray, startTime, endTime, "Incorrect pulse detection", pulse = true, color = 'red'),
                                     makeTrace(pulseArray, startTime, endTime, "Pulse detection", pulse = true, color = auriculaPrimaryColor)], plotlyLayout);
-    calculateChartStats();
+    //calculateChartStats();
     overviewPlot.layout.shapes[0].x0 = startTime;
     overviewPlot.layout.shapes[0].x1 = endTime;
     Plotly.relayout(overviewPlot, overviewPlot.layout);
@@ -525,21 +523,18 @@ function resizePlot() {
 }
 
 function createPlotView(id) {
-
-    /*currentRecording = calendarRecordings.get(id);
-    if (currentRecording === undefined) {
+    console.log(recordingFiles);
+    currentRecordingFile = recordingFiles.get(id);
+    if (currentRecordingFile === undefined) {
         return;
     }
-    currentStorage = baseStorageUrl + currentRecording.FileName;*/
-
-    //makeplot("1234567890_21-04-26_10_44.csv");
+    currentStorage = baseStorageUrl + currentRecording.id + "/" + currentRecordingFile.FileName;
+    console.log(currentStorage);
 
     getFromStorage(storage, "1");
     showBackButton();
 
-    hideAll();
-    plotView.setAttribute('style', 'display: unset');
-    currentView = plotView;
+    document.getElementById("plotDiv").setAttribute("style", "display: unset;");
 }
 
 //Här lägger vi in att run ska köras när dokumentet är laddat.
@@ -577,7 +572,7 @@ function processData(allRows) {
 
         loadPlotlyTimeSeries(ecgArray);
         plotlyUpdate(0, windowLength);
-        calculateChartStats();
+        //calculateChartStats();
         
         console.log("Data processed");
     }
@@ -771,7 +766,7 @@ function createCalendar() {
             var td = document.createElement('td');
             td.id = 'r' + i + 'c' + j;
             td.addEventListener('click', event => {
-                createPlotView(event.target.id);
+                listRecordingFiles(event.target.id);
             });
             tr.appendChild(td);
         }
@@ -918,15 +913,22 @@ function search(ssn) {
     if (ssn.length > 10) {
         ssn = ssn.substring(2);
     }
-    database.collection('Patients').where('SSN', '==', ssn).get().then((querySnapshot) => {
+    database.collection('Recordings').where('SSN', '==', ssn).withConverter(recordingConverter).get().then((querySnapshot) => {
         if (querySnapshot.empty) {
             alert("The patient you searched for is not included in this database");
             return;
         }
+        recordings = [];
         querySnapshot.forEach(doc => {
-            patient = doc.data();
+            recordings.push(doc.data());
+            recordings[recordings.length - 1].id = doc.id;
         });
-        database.collection('Patients').doc(ssn).collection('Recordings').withConverter(recordingConverter).get().then(snapshot => {
+        if (currentView == plotView) {
+            clearPlotView();
+        }
+        updateCalendar(currentYear, currentMonth);
+        showCalendarView();
+        /*database.collection('Patients').doc(ssn).collection('Recordings').withConverter(recordingConverter).get().then(snapshot => {
             recordings = [];
             snapshot.forEach(data => {
                 recordings.push(data.data());
@@ -936,11 +938,11 @@ function search(ssn) {
             }
             updateCalendar(currentYear, currentMonth);
             showCalendarView();
-        });
+        });*/
         console.log("Searched");
-    }).catch((error) => {
+    })/*.catch((error) => {
         console.log(error.message);
-    });
+    });*/
 }
 
 Date.prototype.isSameDateAs = function (pDate) {
@@ -958,6 +960,48 @@ function recordingsContainsDate(date) {
         }
     }
     return null;
+}
+
+var recordingFiles = new Map();
+
+function listRecordingFiles(id) {
+    currentRecording = calendarRecordings.get(id);
+    if (currentRecording === undefined) {
+        return;
+    }
+    hideAll();
+
+    var ul = document.getElementById("recordingList");
+    ul.innerHTML = "";
+    console.log("Creating List items");
+    
+    database.collection("Recordings").doc(currentRecording.id).collection("Files").get().then(snapshot => {
+        var i = 1;
+        snapshot.forEach(doc => {
+            var tr = document.createElement("tr");
+            var td = document.createElement("td");
+            if (doc.data().SuspectedAF) {
+                td.className = "recordingAF";
+            } else {
+                td.className = "recordingNotAF";
+            }
+            var id = "file_" + i;
+            td.setAttribute("id", id);
+            td.setAttribute("value", i);
+            td.innerText = doc.data().FileName;
+            td.addEventListener("click", function (event) { createPlotView(event.target.id) })
+            tr.appendChild(td);
+            ul.appendChild(tr);
+
+            recordingFiles.set(id, doc.data());
+            i++;
+        });
+    });
+    
+    hideAll();
+    plotView.setAttribute('style', 'display: unset');
+    currentView = plotView;
+    console.log("Done creating List items");
 }
 
 function showBackButton() {

@@ -222,3 +222,39 @@ p.legend {
     justify-content: center;
     align-items: center;
 }
+
+#recordingListView {
+    list-style-type: none;
+    display: flex;
+    justify-content: center;
+}
+
+.recordingAF {
+    color: black;
+    font-size: 20pt;
+    display: inline-block;
+    background-color: #FF8080;
+    padding-left: 30px;
+    padding-right: 30px;
+}
+
+    .recordingAF:hover {
+        text-decoration: none;
+        background-color: #F53A3A;
+        cursor: pointer;
+    }
+
+.recordingNotAF {
+    color: black;
+    font-size: 20pt;
+    display: inline-block;
+    background-color: lightgreen;
+    padding-left: 30px;
+    padding-right: 30px;
+}
+
+    .recordingNotAF:hover {
+        text-decoration: none;
+        background-color: #45CE45;
+        cursor: pointer;
+    }

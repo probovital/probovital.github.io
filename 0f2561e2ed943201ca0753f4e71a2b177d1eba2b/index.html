@@ -57,16 +57,14 @@
 
     <!-- Plot view-->
     <div id="plotViewDiv" style="display:none">
-        <div>
+        <div id="plotDiv" style="display:none">
             <div align="center">
                 <h1 id="plotTitle"></h1>
                 <div id="chartly_still" style="height: 450px;"></div>
                 <div id="chartly_overview" style="height: 50px; margin-bottom: 10px; margin-top: 5px"></div>
             </div>
-        </div>
 
-        <!-- Chart-buttons-->
-        <div>
+            <!-- Chart-buttons-->
             <div class="col-12" align="center" style="margin-bottom:10px">
                 <div id="afLegend">
                     <p style="height: 20px; width: 20px; background-color: red; opacity: 0.2; margin-right: 5px;"></p>
@@ -77,27 +75,23 @@
                 <input type="Button" id="btnUpdateWindowSize" value="Update window size" class="btn btn-dark" />
                 <input type="Button" id="btnNext" value=">" class="btn btn-dark" />
             </div>
-        </div>
 
-        <!-- OnClick popup-->
-        <div id="clickDialog" align="center" style="display:none;">
-            <div class="text" id="selectedPointsText"></div>
-            <div class="text">Select if the algorithm missed a pulse or falsely sensed a pulse where no QRS complex was seen</div>
-            <div>
-                <input type="Button" id="btnMissingPulse" value="Missing" class="btn btn-dark" style="margin-left:auto" />
-                <input type="Button" id="btnFalsePulse" value="Incorrect" class="btn btn-dark" />
-                <input type="Button" id="btnCancel" value="Cancel" class="btn btn-dark" style="margin-right: auto" />
-            </div>
-        </div>
-
-
-        <!-- Chart stats-->
-        <div class="container bg-light border border-secondary" id="chartStats" style="width: 300px; margin-top:10px; margin-bottom:10px; display: none">
-            <div>
-                <div class="col-12" align="center" style="margin-top:10px; margin-bottom:0px">
-                    <div class="text" id="chartStatText"></div>
+            <!-- OnClick popup-->
+            <div id="clickDialog" align="center" style="display:none;">
+                <div class="text" id="selectedPointsText"></div>
+                <div class="text">Select if the algorithm missed a pulse or falsely sensed a pulse where no QRS complex was seen</div>
+                <div>
+                    <input type="Button" id="btnMissingPulse" value="Missing" class="btn btn-dark" style="margin-left:auto" />
+                    <input type="Button" id="btnFalsePulse" value="Incorrect" class="btn btn-dark" />
+                    <input type="Button" id="btnCancel" value="Cancel" class="btn btn-dark" style="margin-right: auto" />
                 </div>
             </div>
+        </div>
+
+
+        <!-- Recording list view -->
+        <div id="recordingListView">
+            <table id="recordingList"></table>
         </div>
 
 
@@ -178,21 +172,6 @@
             <p class="legend">Suspected atrial fibrillation</p>
         </div>
     </div>
-
-    <!-- The `multiple` attribute lets users select multiple files. -->
-    <input type="file" id="file-selector">
-    <script>
-        const fileSelector = document.getElementById('file-selector');
-        fileSelector.addEventListener('change', (event) => {
-            const fileList = event.target.files;
-            console.log(fileList);
-            var filereader = new FileReader();
-            filereader.onload = function () {
-                makeplot(filereader.result);
-            }
-            filereader.readAsDataURL(fileList[0]);
-        });
-    </script>
 
     <!--Bootstrap -->
     <script src="https://code.jquery.com/jquery-3.5.1.slim.min.js"

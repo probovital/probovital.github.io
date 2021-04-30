@@ -370,9 +370,13 @@ function initializePlotView() {
 }
 
 function clearPlotView() {
-    Plotly.purge(mainPlot);
-    Plotly.purge(overviewPlot);
+    if (mainPlot !== undefined) {
+        Plotly.purge(mainPlot);
+        Plotly.purge(overviewPlot);
+    }
     document.getElementById("plotTitle").innerHTML = "";
+    document.getElementById("plotDiv").setAttribute("style", "display: none");
+    document.getElementById("recordingList").innerHTML = "";
 }
 
 function getEcgData(dataItem) {
@@ -523,16 +527,13 @@ function resizePlot() {
 }
 
 function createPlotView(id) {
-    console.log(recordingFiles);
     currentRecordingFile = recordingFiles.get(id);
     if (currentRecordingFile === undefined) {
         return;
     }
     currentStorage = baseStorageUrl + currentRecording.id + "/" + currentRecordingFile.FileName;
-    console.log(currentStorage);
 
     getFromStorage(storage, "1");
-    showBackButton();
 
     document.getElementById("plotDiv").setAttribute("style", "display: unset;");
 }
@@ -548,7 +549,7 @@ const arrayColumn = (arr, n) => arr.map(x => x[n]);
 
 function processData(allRows) {
     try {
-        console.log(allRows);
+        //console.log(allRows);
         var x = [];
         var y = [];
         standard_deviation = [];
@@ -963,6 +964,7 @@ function recordingsContainsDate(date) {
 }
 
 var recordingFiles = new Map();
+var recordingFilesList = [];
 
 function listRecordingFiles(id) {
     currentRecording = calendarRecordings.get(id);
@@ -970,37 +972,58 @@ function listRecordingFiles(id) {
         return;
     }
     hideAll();
-
-    var ul = document.getElementById("recordingList");
-    ul.innerHTML = "";
-    console.log("Creating List items");
     
     database.collection("Recordings").doc(currentRecording.id).collection("Files").get().then(snapshot => {
-        var i = 1;
+        recordingFilesList = [];
         snapshot.forEach(doc => {
-            var tr = document.createElement("tr");
-            var td = document.createElement("td");
-            if (doc.data().SuspectedAF) {
-                td.className = "recordingAF";
-            } else {
-                td.className = "recordingNotAF";
-            }
-            var id = "file_" + i;
-            td.setAttribute("id", id);
-            td.setAttribute("value", i);
-            td.innerText = doc.data().FileName;
-            td.addEventListener("click", function (event) { createPlotView(event.target.id) })
-            tr.appendChild(td);
-            ul.appendChild(tr);
-
-            recordingFiles.set(id, doc.data());
-            i++;
+            recordingFilesList.push(doc.data());
         });
+        recordingFilesList.sort(dynamicSort("FileName"));
+        generateRecoringFilesList();
     });
-    
     hideAll();
     plotView.setAttribute('style', 'display: unset');
     currentView = plotView;
+    showBackButton();
+}
+
+function dynamicSort(property) {
+    var sortOrder = 1;
+    if (property[0] === "-") {
+        sortOrder = -1;
+        property = property.substr(1);
+    }
+    return function (a, b) {
+        /* next line works with strings and numbers, 
+         * and you may want to customize it to your needs
+         */
+        var result = (a[property] < b[property]) ? -1 : (a[property] > b[property]) ? 1 : 0;
+        return result * sortOrder;
+    }
+}
+function generateRecoringFilesList() {
+    recordingsListUl = document.getElementById("recordingList");
+    
+    console.log("Creating List items");
+
+    for (i = 0; i < recordingFilesList.length; i++) {
+        var recording = recordingFilesList[i];
+        var tr = document.createElement("tr");
+        var td = document.createElement("td");
+        if (recording.SuspectedAF) {
+            td.className = "recordingAF";
+        } else {
+            td.className = "recordingNotAF";
+        }
+        var id = "file_" + i;
+        td.setAttribute("id", id);
+        td.setAttribute("value", i);
+        td.innerText = recording.FileName;
+        td.addEventListener("click", function (event) { createPlotView(event.target.id) })
+        tr.appendChild(td);
+        recordingsListUl.appendChild(tr);
+        recordingFiles.set(id, recording);
+    }
     console.log("Done creating List items");
 }
 

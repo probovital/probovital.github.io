@@ -243,6 +243,30 @@ var plotlyLayoutOverview = {
     autosize: true
 }
 
+var plotlyLayoutMedian = {
+    paper_bgcolor: 'rgba(0,0,0,0)',
+    plot_bgcolor: 'rgba(0,0,0,0)',
+    legend: {
+        orientation: 'h',
+        yanchor: 'bottom',
+        y: 0.99,
+        xanchor: 'left',
+        x: 0
+    },
+    hoverinfo: 'none',
+    hovermode: 'x',
+    dragmode: 'pan',
+    margin: {
+        l: 50,
+        r: 50,
+        b: 20,
+        t: 0,
+        pad: 0
+    },
+    shapes: [],
+    autosize: true
+}
+
 var cursorAdded = false;
 var cursor1 = {
     xid: 1,
@@ -312,6 +336,7 @@ var currentRecording;
 
 var mainPlot;
 var overviewPlot;
+var medianPlot;
 
 var selectedPoint = 0;
 var latestAction = [];
@@ -384,7 +409,7 @@ function getEcgData(dataItem) {
 }
 function makeTrace(data, start, end, name, pulse = false, color = gray, type = 'line') {
     var plotStart = math.max(0, start - 1.1 * windowLength);
-    var plotEnd = end + 1.1 * windowLength;
+    var plotEnd = math.min(data.length, end + 1.1 * windowLength);
     plotData = normalize(data, start, end, pulse);
     return { x: range(plotStart, plotEnd), y: plotData, name: name, type: type, line: { color: color, width: 3 }, hoverinfo: 'none' }
 }
@@ -461,6 +486,9 @@ function loadPlotlyTimeSeries(ecgData) {
     updateShapes(0, windowLength, mainPlot.layout.shapes);
     Plotly.relayout(overviewPlot, overviewPlot.layout);
     Plotly.relayout(mainPlot, mainPlot.layout);
+
+    medianPlot = document.getElementById('median');
+    displayMedianBeat(calculateMedianBeat());
 }
 
 
@@ -705,6 +733,94 @@ function calculateChartStats() {
         "Error Rate: " + errorRate + "\n\n" +
         "Signal to noise: " + signalToNoise + "\n\n";
 
+}
+
+function displayMedianBeat(array) {
+    Plotly.purge(medianPlot);
+    plotlyLayout.title = "Median Beat";
+    Plotly.newPlot(medianPlot, [makeTrace(array, 0, array.length, "Median Beat")], plotlyLayoutMedian);
+    Plotly.relayout(medianPlot, {
+        xaxis: {
+            range: [0, array.length]
+        }
+    })
+    console.log("Median beat created")
+}
+
+function calculateMedianBeat(beatNumber = 5, index = 0) {
+    var medianBeatArray = [];
+    var beatRange = 0;
+    var beatIndexes = [];
+    var arrayOfDistances = [];
+    var numberOfBeats = beatNumber;
+
+
+    for (var i = 0; i < pulseArray.length; i++) {
+        if (pulseArray[i] > 0 | missingArray[i] > 0) {
+            beatIndexes.push(i);
+        }
+    }
+    for (var i = 0; i < beatIndexes.length - 2; i++) {
+        arrayOfDistances.push(beatIndexes[i + 1] - beatIndexes[i]);
+    }
+    beatRange = Math.floor(calculateMedian(arrayOfDistances));
+
+    //if(numberOfBeats<2){
+    //  numberOfBeats=2;
+    //}
+    if (numberOfBeats > beatIndexes.length) {
+        numberOfBeats = beatIndexes.length;
+    }
+    numberOfBeats = beatIndexes.length;
+    //kolla varje index, om det finns ett puls eller missing beat så ska det räknas
+    //spara detta index i en array
+    //skapa ny array med avståndet mellan varje index
+    // räkna ut medianavståndet och spara i beatrange
+    newBeats = []
+    for (var i = 0; i < numberOfBeats - 2; i++) {
+        newBeats.push([])
+    }
+
+    var pointValues = [];
+    //for(var j=0; j < (beatRange *2) ; j++){
+    for (var j = 0; j < 450; j++) {
+        pointValues = [];
+        for (var i = 1; i < numberOfBeats - 2; i++) {
+            if ((beatIndexes[i] - beatRange) > 0 & (beatIndexes[i] + beatRange) < ecgArray.length) {
+                //var value = beatIndexes[i] - beatRange + j;
+                var value = beatIndexes[i] - 200 + j;
+                var thisValue = ecgArray[value + index];
+
+                pointValues.push(thisValue);
+                newBeats[i].push(thisValue);
+            }
+        }
+        var medianValue = calculateMedian(pointValues);
+        //var medianValue = math.mean(pointValues);
+        medianBeatArray.push("" + medianValue);
+
+    }
+
+    //för varje beat, titta i range innan och efter, kolla att det finns plats fram och bak
+    //spara varje index i en nested array index[i][värde]
+    //skapa ny array medianBeat där varje värde är medianvärdet av värdena för index
+    newBeats.push(Float32Array.from(medianBeatArray))
+    newBeats.shift()
+    console.log(newBeats)
+    //uploadBlob(storage, "/Medianbeats" + currentTitle, [newBeats])
+    return medianBeatArray;
+}
+
+function calculateMedian(values) {
+    if (values.length === 0) return 0;
+    values.sort(function (a, b) {
+        return a - b;
+    });
+    var half = Math.floor(values.length / 2);
+    if (values.length % 2) {
+        return values[half];
+    }
+    return (values[half - 1] + values[half]) / 2.0;
 }
 
 /* Calendar view */

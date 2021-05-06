@@ -255,16 +255,24 @@ var plotlyLayoutMedian = {
     },
     hoverinfo: 'none',
     hovermode: 'x',
-    dragmode: 'pan',
+    dragmode: 'none',
+    title: {
+        text: "Median Beat",
+        yref: 'paper',
+        y: 1,
+        yanchor: 'bottom'
+    },
     margin: {
         l: 50,
         r: 50,
         b: 20,
-        t: 0,
+        t: 20,
         pad: 0
     },
     shapes: [],
-    autosize: true
+    autosize: true,
+    xaxis: { fixedrange: true },
+    yaxis: { fixedrange: true }
 }
 
 var cursorAdded = false;
@@ -559,6 +567,7 @@ function createPlotView(id) {
     if (currentRecordingFile === undefined) {
         return;
     }
+    document.documentElement.scrollTop = 0;
     currentStorage = baseStorageUrl + currentRecording.id + "/" + currentRecordingFile.FileName;
 
     getFromStorage(storage, "1");
@@ -737,11 +746,11 @@ function calculateChartStats() {
 
 function displayMedianBeat(array) {
     Plotly.purge(medianPlot);
-    plotlyLayout.title = "Median Beat";
-    Plotly.newPlot(medianPlot, [makeTrace(array, 0, array.length, "Median Beat")], plotlyLayoutMedian);
+    Plotly.newPlot(medianPlot, [makeTrace(array, 0, array.length, "Median Beat")], plotlyLayoutMedian, { displayModeBar: false });
     Plotly.relayout(medianPlot, {
         xaxis: {
-            range: [0, array.length]
+            range: [0, array.length],
+            fixedrange: true
         }
     })
     console.log("Median beat created")

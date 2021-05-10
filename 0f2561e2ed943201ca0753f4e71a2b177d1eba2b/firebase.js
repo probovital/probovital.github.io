@@ -1,13 +1,12 @@
-const firebaseConfig = {
-  apiKey: "AIzaSyBlqFZN0ssCK8v1jbggxptaWxocUpjEkoc",
-  authDomain: "ecg-device.firebaseapp.com",
-  databaseURL: "https://ecg-device.firebaseio.com",
-  projectId: "ecg-device",
-  storageBucket: "ecg-device.appspot.com",
-  messagingSenderId: "288169120284",
-  appId: "1:288169120284:web:539cf8ea9a132161a6c5d9",
-  measurementId: "G-CYNRF73Q7L"
-};
+var firebaseConfig = {
+    apiKey: "AIzaSyDlDOZA5l41SFzWdnIzIL23TEytM4msROg",
+    authDomain: "auricula-ecg.firebaseapp.com",
+    projectId: "auricula-ecg",
+    storageBucket: "auricula-ecg.appspot.com",
+    messagingSenderId: "72968351673",
+    appId: "1:72968351673:web:1fd8c66dbd9c7c1d939068",
+    measurementId: "G-LEB67QWTPQ"
+  };
 
 function getFromStorage(storage, reference){
   console.log("Loading datasource from storage");

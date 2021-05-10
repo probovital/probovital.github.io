@@ -79,7 +79,7 @@ function initializeGUI() {
 }
 
 function initializeFirebase() {
-    firebase.initializeApp(philipsFirebaseConfig);
+    firebase.initializeApp(firebaseConfig);
 
     console.log("Loading Firebase");
     const firebaseApp = firebase;
@@ -318,7 +318,7 @@ var end = 2000;
 var list_index = 0;
 var urls = [];
 var listItems = [];
-var baseStorageUrl = 'gs://fw-update.appspot.com/RecordingData/';
+var baseStorageUrl = 'gs://auricula-ecg.appspot.com/RecordingData/';
 var currentStorage = 'gs://ecg-device.appspot.com/firestore/Philip filter160 ia50 pga8 20-12-10:11:28.csv';
 var evaluateStorageSelected = false;
 var baseStorageRef = 'firestore';
@@ -425,7 +425,7 @@ function makeTrace(data, start, end, name, pulse = false, color = gray, type = '
 function loadPlotlyTimeSeries(ecgData) {
 
     var date = currentRecording.CollDate;
-    var plotTitle = `${patient.Name} ${date.getDate()} ${monthNames[date.getMonth()]} ${date.getFullYear()}`;
+    var plotTitle = `${patient.Name} ${date.getDate()} ${monthNames[date.getMonth()]} ${date.getFullYear()} ${currentRecordingFile.FileName}`;
     document.getElementById("plotTitle").innerHTML = plotTitle;
     currentIndex = 0;
     mainPlot = document.getElementById('chartly_still');

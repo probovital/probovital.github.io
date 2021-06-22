@@ -20,185 +20,10 @@ var currentView;
 
 var GUIInitialized = false;
 
-function initialize() {
-    initializeFirebase();
-    initializeGUI();
-}
-
-function initializeGUI() {
-    GUI = document.getElementById("GUI");
-    GUI.setAttribute('style', 'display: unset');
-
-    startView = document.getElementById("startViewDiv");
-    loginView = document.getElementById("loginViewDiv");
-    plotView = document.getElementById("plotViewDiv");
-    searchView = document.getElementById("searchView");
-
-    /* Calendar view */
-    calendarView = document.getElementById("calendarViewDiv");
-    createCalendar();
-
-    var searchText = document.getElementById("searchText");
-    searchText.addEventListener('keyup', (event) => {
-        if (event.keyCode == 13) {
-            search(searchText.value)
-        }
-    });
-    var searchButton = document.getElementById("searchButton");
-    searchButton.addEventListener("click", () => {
-        search(searchText.value);
-    });
-
-    var titleLoginButton = document.getElementById("titleLoginButton");
-    titleLoginButton.addEventListener('click', titleLoginButtonFunction);
-    if (firebase.auth().currentUser) {
-        titleLoginButton.innerHTML = "Log out";
-        searchText.visible = true;
-        searchButton.visible = true;
-        showCalendarView();
-    } else {
-        showLoginView();
-    }
-    setupLoginFunction();
-
-    var backButton = document.getElementById('backButton');
-    backButton.addEventListener('click', function () {
-        showCalendarView();
-        hideBackButton();
-        clearPlotView();
-    });
-    hideBackButton();
-
-    document.getElementById("ssnText").style.visibility = "hidden";
-    document.getElementById("searchText").style.visibility = "hidden";
-    document.getElementById("searchButton").style.visibility = "hidden";
-
-    initializePlotView();
-
-    GUIInitialized = true;
-}
-
-function initializeFirebase() {
-    firebase.initializeApp(firebaseConfig);
-
-    console.log("Loading Firebase");
-    const firebaseApp = firebase;
-    // Get a reference to the storage service, which is used to create references in your storage bucket
-    storage = firebase.storage();
-    database = firebase.firestore();
-    storageRef = storage.ref(baseStorageRef);
-
-    firebase.auth().onAuthStateChanged(user => {
-        if (user) {
-            console.log("state = definitely signed in");
-            /*if (!GUIInitialized) {
-                initializeGUI();
-            }*/
-            document.getElementById("titleLoginButton").innerHTML = "Log out";
-            document.getElementById("ssnText").style.visibility = "visible";
-            document.getElementById("searchText").style.visibility = "visible";
-            document.getElementById("searchButton").style.visibility = "visible";
-            document.getElementById("email").value = "";
-            document.getElementById("password").value = "";
-            document.getElementById("loginMessage").innerHTML = "";
-            showCalendarView();
-        }
-        else {
-            console.log("state = definitely signed out");
-            /*if (!GUIInitialized) {
-                initializeGUI();
-            }*/
-            document.getElementById("titleLoginButton").innerHTML = "Log in";
-            document.getElementById("ssnText").style.visibility = "hidden";
-            document.getElementById("searchText").style.visibility = "hidden";
-            document.getElementById("searchButton").style.visibility = "hidden";
-            document.getElementById("searchText").value = "";
-        }
-    })
-
-    console.log("Firebase Loaded");
-}
-
-class Recording {
-    constructor(BTAddress, CollDate, SSN, SuspectedAF) {
-        this.BTAddress = BTAddress;
-        this.CollDate = CollDate;
-        this.SSN = SSN;
-        this.SuspectedAF = SuspectedAF;
-    }
-}
-
-var recordingConverter = {
-    toFirestore: function (recording) {
-        return {
-            BTAddress: recording.BTAddress,
-            CollDate: recording.CollDate,
-            SSN: recording.SSN,
-            SuspectedAF: recording.SuspectedAF
-        }
-    },
-    fromFirestore: function (snapshot, options) {
-        const data = snapshot.data(options);
-        return new Recording(data.BTAddress, new Date(data.CollDate.seconds*1000), data.SSN, data.SuspectedAF);
-    }
-};
-
-function hideAll() {
-    startView.setAttribute('style', 'display: none');
-    loginView.setAttribute('style', 'display: none');
-    calendarView.setAttribute('style', 'display: none');
-    plotView.setAttribute('style', 'display: none');
-}
-
-function showGUI() {
-
-}
-
-/* Login view */
-function showLoginView() {
-    hideAll();
-    loginView.setAttribute('style', 'display: flex');
-    currentView = loginView;
-}
-
-function titleLoginButtonFunction() {
-    if (firebase.auth().currentUser) {
-        firebase.auth().signOut();
-    }
-    showLoginView();
-}
-
-function setupLoginFunction() {
-    var loginButton = document.getElementById("loginButton");
-    loginButton.addEventListener('click', login);
-    var password = document.getElementById("password");
-    password.addEventListener("keyup", function (event) {
-        if (event.keyCode == 13) {
-            login();
-        }
-    });
-}
-
-function login() {
-    var email = document.getElementById("email").value;
-    var password = document.getElementById("password").value;
-    var loginMessage = document.getElementById("loginMessage");
-    firebase.auth().setPersistence(firebase.auth.Auth.Persistence.SESSION).then(() => {
-        return firebase.auth().signInWithEmailAndPassword(email, password)
-            .then((userCredentials) => {
-                showCalendarView();
-            })
-            .catch((error) => {
-                var errorCode = error.code;
-                var errorMessage = error.message;
-                loginMessage.innerHTML = "Error code: " + errorCode + "\nError message: " + errorMessage;
-                console.log(error);
-            });
-    }).catch((error) => {
-        console.log(error);
-    });
-}
-
+var baseStorageUrl = 'gs://auricula-ecg.appspot.com/RecordingData/';
+var currentStorage = 'gs://ecg-device.appspot.com/firestore/Philip filter160 ia50 pga8 20-12-10:11:28.csv';
+var storage = 0;
+var database = 0;
 
 /* Plot view */
 var plotlyLayout = {
@@ -313,16 +138,6 @@ const blue = "#0090B0"
 const red = "#EE2F4E"
 const gray = "768692"
 
-var start = 0;
-var end = 2000;
-var list_index = 0;
-var urls = [];
-var listItems = [];
-var baseStorageUrl = 'gs://auricula-ecg.appspot.com/RecordingData/';
-var currentStorage = 'gs://ecg-device.appspot.com/firestore/Philip filter160 ia50 pga8 20-12-10:11:28.csv';
-var evaluateStorageSelected = false;
-var baseStorageRef = 'firestore';
-var evaluateStorageRef = 'evaluated';
 var delimiter = ";";
 var rawECGArray = [];
 var ecgArray = [];
@@ -330,16 +145,10 @@ var pulseArray = [];
 var missingArray = [];
 var falsePulseArray = [];
 var afArray = [];
-var processedAFArray = [];
-var ecgLoaded = false;
 var currentIndex = 0;
 var windowLength = 3000;
-var storageRef;
 var signalToNoise = 0;
 var newBeats = []
-var medianBeat = []
-var storage = 0;
-var database = 0;
 var currentRecording;
 
 var mainPlot;
@@ -348,6 +157,195 @@ var medianPlot;
 
 var selectedPoint = 0;
 var latestAction = [];
+
+/* Canedar view */
+var currentMonth = new Date().getMonth();
+var currentYear = new Date().getFullYear();
+var monthNames = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
+var calendarRecordings = new Map();
+var recordings = [];
+var patient = { Name: "", SSN: "1234567890" };
+var recordingFiles = new Map();
+var recordingFilesList = [];
+
+function initialize() {
+    initializeFirebase();
+    initializeGUI();
+}
+
+function initializeGUI() {
+    GUI = document.getElementById("GUI");
+    GUI.setAttribute('style', 'display: unset');
+
+    startView = document.getElementById("startViewDiv");
+    loginView = document.getElementById("loginViewDiv");
+    plotView = document.getElementById("plotViewDiv");
+    searchView = document.getElementById("searchView");
+
+    /* Calendar view */
+    calendarView = document.getElementById("calendarViewDiv");
+    createCalendar();
+
+    var searchText = document.getElementById("searchText");
+    searchText.addEventListener('keyup', (event) => {
+        if (event.keyCode == 13) {
+            search(searchText.value)
+        }
+    });
+    var searchButton = document.getElementById("searchButton");
+    searchButton.addEventListener("click", () => {
+        search(searchText.value);
+    });
+
+    var titleLoginButton = document.getElementById("titleLoginButton");
+    titleLoginButton.addEventListener('click', titleLoginButtonFunction);
+    if (firebase.auth().currentUser) {
+        titleLoginButton.innerHTML = "Log out";
+        searchText.visible = true;
+        searchButton.visible = true;
+        showCalendarView();
+    } else {
+        showLoginView();
+    }
+    setupLoginFunction();
+
+    var backButton = document.getElementById('backButton');
+    backButton.addEventListener('click', function () {
+        showCalendarView();
+        hideBackButton();
+        clearPlotView();
+    });
+    hideBackButton();
+
+    document.getElementById("ssnText").style.visibility = "hidden";
+    document.getElementById("searchText").style.visibility = "hidden";
+    document.getElementById("searchButton").style.visibility = "hidden";
+
+    initializePlotView();
+
+    GUIInitialized = true;
+}
+
+function initializeFirebase() {
+    firebase.initializeApp(firebaseConfig);
+
+    console.log("Loading Firebase");
+    const firebaseApp = firebase;
+    // Get a reference to the storage service, which is used to create references in your storage bucket
+    storage = firebase.storage();
+    database = firebase.firestore();
+
+    firebase.auth().onAuthStateChanged(user => {
+        if (user) {
+            console.log("state = definitely signed in");
+            /*if (!GUIInitialized) {
+                initializeGUI();
+            }*/
+            document.getElementById("titleLoginButton").innerHTML = "Log out";
+            document.getElementById("ssnText").style.visibility = "visible";
+            document.getElementById("searchText").style.visibility = "visible";
+            document.getElementById("searchButton").style.visibility = "visible";
+            document.getElementById("email").value = "";
+            document.getElementById("password").value = "";
+            document.getElementById("loginMessage").innerHTML = "";
+            showCalendarView();
+        }
+        else {
+            console.log("state = definitely signed out");
+            /*if (!GUIInitialized) {
+                initializeGUI();
+            }*/
+            document.getElementById("titleLoginButton").innerHTML = "Log in";
+            document.getElementById("ssnText").style.visibility = "hidden";
+            document.getElementById("searchText").style.visibility = "hidden";
+            document.getElementById("searchButton").style.visibility = "hidden";
+            document.getElementById("searchText").value = "";
+        }
+    })
+
+    console.log("Firebase Loaded");
+}
+
+class Recording {
+    constructor(BTAddress, CollDate, SSN, SuspectedAF) {
+        this.BTAddress = BTAddress;
+        this.CollDate = CollDate;
+        this.SSN = SSN;
+        this.SuspectedAF = SuspectedAF;
+    }
+}
+
+var recordingConverter = {
+    toFirestore: function (recording) {
+        return {
+            BTAddress: recording.BTAddress,
+            CollDate: recording.CollDate,
+            SSN: recording.SSN,
+            SuspectedAF: recording.SuspectedAF
+        }
+    },
+    fromFirestore: function (snapshot, options) {
+        const data = snapshot.data(options);
+        return new Recording(data.BTAddress, new Date(data.CollDate.seconds*1000), data.SSN, data.SuspectedAF);
+    }
+};
+
+function hideAll() {
+    startView.setAttribute('style', 'display: none');
+    loginView.setAttribute('style', 'display: none');
+    calendarView.setAttribute('style', 'display: none');
+    plotView.setAttribute('style', 'display: none');
+}
+
+function showGUI() {
+
+}
+
+/* Login view */
+function showLoginView() {
+    hideAll();
+    loginView.setAttribute('style', 'display: flex');
+    currentView = loginView;
+}
+
+function titleLoginButtonFunction() {
+    if (firebase.auth().currentUser) {
+        firebase.auth().signOut();
+    }
+    showLoginView();
+}
+
+function setupLoginFunction() {
+    var loginButton = document.getElementById("loginButton");
+    loginButton.addEventListener('click', login);
+    var password = document.getElementById("password");
+    password.addEventListener("keyup", function (event) {
+        if (event.keyCode == 13) {
+            login();
+        }
+    });
+}
+
+function login() {
+    var email = document.getElementById("email").value;
+    var password = document.getElementById("password").value;
+    var loginMessage = document.getElementById("loginMessage");
+    firebase.auth().setPersistence(firebase.auth.Auth.Persistence.SESSION).then(() => {
+        return firebase.auth().signInWithEmailAndPassword(email, password)
+            .then((userCredentials) => {
+                showCalendarView();
+            })
+            .catch((error) => {
+                var errorCode = error.code;
+                var errorMessage = error.message;
+                loginMessage.innerHTML = "Error code: " + errorCode + "\nError message: " + errorMessage;
+                console.log(error);
+            });
+    }).catch((error) => {
+        console.log(error);
+    });
+}
+
 
 function initializePlotView() {
     document.getElementById('btnNext').onclick = function () {
@@ -412,9 +410,6 @@ function clearPlotView() {
     document.getElementById("recordingList").innerHTML = "";
 }
 
-function getEcgData(dataItem) {
-    return ecgArray.slice(dataItem, dataItem + 10);
-}
 function makeTrace(data, start, end, name, pulse = false, color = gray, type = 'line') {
     var plotStart = math.max(0, start - 1.1 * windowLength);
     var plotEnd = math.min(data.length, end + 1.1 * windowLength);
@@ -833,11 +828,6 @@ function calculateMedian(values) {
 }
 
 /* Calendar view */
-
-var currentMonth = new Date().getMonth();
-var currentYear = new Date().getFullYear();
-var monthNames = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
-
 function showCalendarView() {
     hideAll();
     document.getElementById('calendarViewDiv').setAttribute('style', 'display: unset');
@@ -912,8 +902,6 @@ function updateCalendarTitle(year, month) {
     var title = document.getElementById('calendarTitle')
     title.innerHTML = patient.Name + " - " + monthNames[month] + " " + year;
 }
-
-var calendarRecordings = new Map();
 
 function updateCalendar(year, month) {
     updateCalendarTitle(year, month);
@@ -1031,9 +1019,6 @@ function loadNextMonth() {
     updateCalendar(currentYear, currentMonth);
 }
 
-var recordings = [];
-var patient = { Name: "", SSN: "1234567890" };
-
 function search(ssn) {
     ssn = ssn.split('-').join('');
     if (ssn.length > 10) {
@@ -1087,9 +1072,6 @@ function recordingsContainsDate(date) {
     }
     return null;
 }
-
-var recordingFiles = new Map();
-var recordingFilesList = [];
 
 function listRecordingFiles(id) {
     currentRecording = calendarRecordings.get(id);

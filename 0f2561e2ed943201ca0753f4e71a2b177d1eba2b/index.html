@@ -1,0 +1,192 @@
+<!doctype html>
+<meta charset="ISO-8859-1">
+
+<html lang="en">
+<head>
+    <title>Auricula ECG</title>
+    <link rel="stylesheet" href="stylesheet.css" />
+    <link rel="icon" href="img/ic_launcher_round.png" />
+    <!--Bootstrap -->
+
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.0/css/bootstrap.min.css"
+          integrity="sha384-9aIt2nRpC12Uk9gS9baDl411NQApFmC26EwAOH8WgZl5MYYxFfc+NcPb1dKGj7Sk"
+          crossorigin="anonymous">
+
+    <!-- Plotly-->
+    <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
+
+    <!-- Import tfjs-vis -->
+    <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs-vis@1.0.2/dist/tfjs-vis.umd.min.js"></script>
+    <script src="math.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/7.15.3/firebase-app.js"></script>
+
+    <script src="https://www.gstatic.com/firebasejs/7.15.3/firebase-auth.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/7.15.3/firebase-firestore.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/7.15.3/firebase-database.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/7.15.3/firebase-storage.js"></script>
+    <script src="index.js"></script>
+    <script src="firebase.js"></script>
+
+</head>
+
+
+<body id="GUI" style="display: none">
+    <div class="pageTop">
+        <div id="backButton"><p><</p></div>
+        <img src="img/ic_launcher_foreground98.png" id="logo" />
+        <p id="title">ECG analyzer</p>
+        <p id="ssnText">Social security number:</p>
+        <input id="searchText" />
+        <img id="searchButton" src="img/clipart2288671.png" />
+        <div id="titleLoginButton"><p id="login">Log in</p></div>
+    </div>
+
+    <!-- Start view -->
+    <div id="startViewDiv"></div>
+
+    <!-- Login view -->
+    <div id="loginViewDiv">
+        <form>
+            <input type="text" id="email" placeholder="Email" /><br />
+            <input type="password" id="password" placeholder="Password" /><br />
+            <p id="loginButton">Log in</p>
+            <p id="loginMessage"></p>
+        </form>
+    </div>
+
+    <!-- Plot view-->
+    <div id="plotViewDiv" style="display:none">
+        <div id="plotDiv" style="display:none">
+            <div align="center">
+                <h1 id="plotTitle"></h1>
+                <div id="chartly_still" style="height: 450px;"></div>
+                <div id="chartly_overview" style="height: 50px; margin-bottom: 10px; margin-top: 5px"></div>
+            </div>
+
+            <!-- Chart-buttons-->
+            <div class="col-12" align="center" style="margin-bottom:10px">
+                <div id="afLegend">
+                    <p style="height: 20px; width: 20px; background-color: red; opacity: 0.2; margin-right: 5px;"></p>
+                    <p>Suspected Atrial fibrillation</p>
+                </div>
+                <input type="Button" id="btnBack" value="<" class="btn btn-dark" />
+                <input type="text" id="textWindowSize" value="" placeholder="3000" style="width:50px; text-align:right">
+                <input type="Button" id="btnUpdateWindowSize" value="Update window size" class="btn btn-dark" />
+                <input type="Button" id="btnNext" value=">" class="btn btn-dark" />
+            </div>
+
+            <!-- OnClick popup-->
+            <div id="clickDialog" align="center" style="display:none;">
+                <div class="text" id="selectedPointsText"></div>
+                <div class="text">Select if the algorithm missed a pulse or falsely sensed a pulse where no QRS complex was seen</div>
+                <div>
+                    <input type="Button" id="btnMissingPulse" value="Missing" class="btn btn-dark" style="margin-left:auto" />
+                    <input type="Button" id="btnFalsePulse" value="Incorrect" class="btn btn-dark" />
+                    <input type="Button" id="btnCancel" value="Cancel" class="btn btn-dark" style="margin-right: auto" />
+                </div>
+            </div>
+
+            <!-- Median beat-->
+            <div class="col-12" align="center">
+                <div id="median" style="width: 600px; height: 450px">
+                </div>
+            </div>
+        </div>
+
+
+        <!-- Recording list view -->
+        <div id="recordingListView">
+            <table id="recordingList"></table>
+        </div>
+
+
+
+
+        <div class="row" style="display:none">
+            <div class="col-4"></div>
+            <div class="col-4" align="center" style="margin-top:40px; margin-bottom:80px">
+                <input type="Button" id="all" value="All" class="btn btn-dark" />
+                <input type="Button" id="onlyECG" value="EKG" class="btn btn-dark" />
+                <input type="Button" id="onlyPPGIR" value="PPG-IR" class="btn btn-dark" />
+                <input type="Button" id="onlyPPGRed" value="PPEG-Red" class="btn btn-dark" />
+                <input type="Button" id="labels" value="Labels" class="btn btn-dark" />
+            </div>
+            <div class="col-4"></div>
+        </div>
+        <div class="row" style="display:none">
+            <div class="col-12" align="center" style="margin-bottom:40px" id="titleText">
+                <div class="text">Hello world</div>
+            </div>
+        </div>
+        <div class="row" style="display:none">
+            <div class="col-12" align="center">
+                <div id="EKG_div" style="width: 1600px; height: 250px;"><!-- Plotly chart will be drawn inside this DIV --></div>
+            </div>
+
+        </div>
+
+        <div class="row" style="display:none">
+            <div class="col-12" align="center"><div id="PPG_IR_div" style="width: 1600px; height: 250px;"><!-- Plotly chart will be drawn inside this DIV --></div></div>
+        </div>
+
+        <div class="row" style="display:none">
+            <div class="col-12" align="center"><div id="PPG_Red_div" style="width: 1600px; height: 250px;"><!-- Plotly chart will be drawn inside this DIV --></div></div>
+        </div>
+
+        <div class="row" style="display:none">
+            <div class="col-12" align="center"><div id="labels_div" style="width: 1600px; height: 250px;"><!-- Plotly chart will be drawn inside this DIV --></div></div>
+        </div>
+
+
+
+        <div class="row" style="margin-top:40px; display:none">
+            <div class="col-4"></div>
+            <div class="col-2" align="center">
+                <label for="start">Start</label>
+                <input type="text" class="form-control" id="start" placeholder="0" />
+            </div>
+            <div class="col-2" align="center">
+                <label for="end">End</label>
+                <input type="text" class="form-control" id="end" placeholder="2000" />
+            </div>
+
+            <div class="col-4"></div>
+        </div>
+        <div class="row" style="margin-top:40px; display:none">
+            <div class="col-5"></div>
+            <div class="col-2" align="center" style="margin-top:40px; margin-bottom:80px">
+                <label for="length">Data-Length</label>
+                <input type="text" class="form-control" id="length" placeholder="2000" style=" margin-bottom:20px" />
+                <input type="Button" id="load_graph" value="Visa" class="btn btn-dark" />
+            </div>
+            <div class="col-5"></div>
+        </div>
+
+    </div>
+
+    <!-- Calendar view -->
+    <div id="calendarViewDiv" style="display: none">
+        <h1 id="calendarTitleDiv"></h1>
+        <div id="calendarDiv" style="align:center"></div>
+        <div id="calendarLegend">
+            <p id="whiteBox"></p>
+            <p class="legend">No data</p>
+            <p id="greenBox"></p>
+            <p class="legend">No atrial fibrillation</p>
+            <p id="redBox"></p>
+            <p class="legend">Suspected atrial fibrillation</p>
+        </div>
+    </div>
+
+    <!--Bootstrap -->
+    <script src="https://code.jquery.com/jquery-3.5.1.slim.min.js"
+            integrity="sha384-DfXdz2htPH0lsSSs5nCTpuj/zy4C+OGpamoFVy38MVBnE+IbbVYUew+OrCXaRkfj" crossorigin="anonymous"></script>
+    <script src="https://cdn.jsdelivr.net/npm/popper.js@1.16.0/dist/umd/popper.min.js"
+            integrity="sha384-Q6E9RHvbIyZFJoft+2mJbHaEWldlvI9IOYy5n3zV9zzTtmI3UksdQRVvoxMfooAo" crossorigin="anonymous"></script>
+    <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.0/js/bootstrap.min.js"
+            integrity="sha384-OgVRvuATP1z7JjHLkuOU7Xw704+h835Lr+6QL9UvYjZE3Ipu6Tp75j7Bh/kR0JKI" crossorigin="anonymous"></script>
+
+
+
+</body>
+</html>

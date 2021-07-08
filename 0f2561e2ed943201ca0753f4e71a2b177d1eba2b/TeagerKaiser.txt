@@ -1,0 +1,13 @@
+def pulseFormattingAndTeagerKaiserEnergyOperator(signal):
+    diff = []
+    filteredSignal = []
+
+    //Här räknar vi ut diffen, vi tar det absoluta värdet av den aktuella datapunkten - det absoluta värdet av föregående punkt,
+    //härefter höjer vi upp värdet med 2
+    for i in range(1, len(signal)):
+        diff.append( math.pow( signal[i] - signal[i-1], 2))
+
+    //Här gör vi TeagerKaiser på diffen av signalen, vi höjer värdet med 2, och drar sedan bort föregående och nästkommande diff-värde
+    for i in range(1, len(diff)-1):
+        filteredSignal.append( math.pow((diff[i]), 2) - (diff[i-1] * diff[i+1]) )
+    return filteredSignal
